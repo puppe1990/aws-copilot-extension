@@ -446,6 +446,70 @@ it('derives wizard diagnostics from the requested href instead of stale active p
   expect(markdown).toContain('- searchSelector: input[aria-label="Search"], input[aria-label*="Search"], input[placeholder="Search"], input[type="search"], [role="searchbox"]');
 });
 
+it('explains when the iam policy step is blocked because the user is still on the S3 bucket form', () => {
+  document.body.innerHTML = `
+    <h1>Create bucket</h1>
+    <h2>General configuration</h2>
+    <input aria-label="Search" placeholder="Search" />
+    <input name="bucketName" aria-label="Bucket name" />
+  `;
+
+  handleContentMessage(
+    {
+      type: 'AWS_COPILOT_RENDER_GUIDE_STEP',
+      guideId: 's3-iam-app-access',
+      locale: 'en',
+      activeStepIndex: 3
+    },
+    'https://us-east-1.console.aws.amazon.com/s3/bucket/create?region=us-east-1',
+    vi.fn()
+  );
+
+  expect(document.body).toHaveTextContent('Create a least-privilege IAM policy');
+  expect(document.body).toHaveTextContent('Open IAM Policies and start Create policy to continue.');
+  expect(document.body).toHaveTextContent('Open IAM');
+  expect(document.body).not.toHaveTextContent('Search S3');
+});
+
+it('reports a concrete recovery mode in debug markdown for the iam policy step on the S3 bucket form', () => {
+  document.body.innerHTML = `
+    <h1>Create bucket</h1>
+    <h2>General configuration</h2>
+    <input aria-label="Search" placeholder="Search" />
+    <input name="bucketName" aria-label="Bucket name" />
+  `;
+
+  handleContentMessage(
+    {
+      type: 'AWS_COPILOT_RENDER_GUIDE_STEP',
+      guideId: 's3-iam-app-access',
+      locale: 'en',
+      activeStepIndex: 3
+    },
+    'https://us-east-1.console.aws.amazon.com/s3/bucket/create?region=us-east-1',
+    vi.fn()
+  );
+
+  const sendResponse = vi.fn();
+
+  handleContentMessage(
+    {
+      type: 'AWS_COPILOT_EXTRACT_DEBUG_CONTEXT'
+    },
+    'https://us-east-1.console.aws.amazon.com/s3/bucket/create?region=us-east-1',
+    sendResponse
+  );
+
+  const markdown = sendResponse.mock.calls[0]?.[0].markdown as string;
+  expect(markdown).toContain('Detected page kind: s3CreateBucket');
+  expect(markdown).toContain('- stepId: iamPolicy');
+  expect(markdown).toContain('- shouldSearchS3: false');
+  expect(markdown).toContain('## Diagnosis');
+  expect(markdown).toContain('- Expected page kind: iamCreatePolicy');
+  expect(markdown).toContain('- Recovery mode: openIam');
+  expect(markdown).toContain('- Recommended action: Open IAM Policies and start Create policy.');
+});
+
 it('does not clear an existing overlay while extracting debug context', () => {
   document.body.innerHTML = `
     <input name="bucketName" />

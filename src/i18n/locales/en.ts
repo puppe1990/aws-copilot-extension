@@ -22,11 +22,13 @@ export const en = {
   'action.copyPolicyJson': 'Copy policy JSON',
   'action.fill': 'Fill field',
   'action.openSpotlight': 'Open spotlight in AWS',
+  'action.openIam': 'Open IAM',
   'action.next': 'Next step',
   'action.exit': 'Exit guide',
   'action.highlightField': 'Highlight field',
   'action.done': 'Mark done',
   'status.localOnly': 'Runs locally. No AWS API calls. No data sent to servers.',
   'error.notAws': 'Open the AWS Console to use this guide.',
-  'error.wrongPage': 'Search for S3 in the AWS Console, then open Amazon S3.'
+  'error.wrongPage': 'Search for S3 in the AWS Console, then open Amazon S3.',
+  'error.openIamPolicy': 'Open IAM Policies and start Create policy to continue.'
 } as const;

@@ -11,6 +11,8 @@ type GuideState = {
   completedStepIds: GuideStepId[];
 };
 
+type RecoveryMode = 'none' | 'searchS3' | 'openIam';
+
 type ContentMessage = {
   type?: string;
   selector?: unknown;
@@ -65,9 +67,17 @@ const labels = {
     en: 'Search S3',
     'pt-BR': 'Buscar S3'
   },
+  openIam: {
+    en: 'Open IAM',
+    'pt-BR': 'Abrir IAM'
+  },
   openCreateBucket: {
     en: 'Click Create bucket in Amazon S3.',
     'pt-BR': 'Clique em Create bucket no Amazon S3.'
+  },
+  openIamPolicy: {
+    en: 'Open IAM Policies and start Create policy to continue.',
+    'pt-BR': 'Abra IAM Policies e inicie Create policy para continuar.'
   },
   createBucket: {
     en: 'Create bucket',
@@ -628,6 +638,7 @@ type GuideRenderContext = {
   page: ReturnType<typeof detectAwsPage>;
   step: ContentGuideStep | null;
   stepIdentifier: string;
+  recoveryMode: RecoveryMode;
   bucketFormTarget: HTMLElement | null;
   isBucketCreateForm: boolean;
   isBucketLanding: boolean;
@@ -664,6 +675,52 @@ function summarizeSelectorSummaries(context: GuideRenderContext): string[] {
   return summaries.length > 0 ? summaries : ['None'];
 }
 
+function deriveRecoveryMode(
+  step: ContentGuideStep | null,
+  page: ReturnType<typeof detectAwsPage>,
+  isExpectedStepPage: boolean,
+  isBucketLanding: boolean
+): RecoveryMode {
+  if (!step || isExpectedStepPage || isBucketLanding || page.kind === 'notAws') {
+    return 'none';
+  }
+
+  if (step.id === 'iamPolicy') {
+    return 'openIam';
+  }
+
+  return 'searchS3';
+}
+
+function buildIamPolicyCreateUrl(href: string): string {
+  const parsed = new URL(href);
+  const isRegionalConsoleHost = /^[a-z0-9-]+\.console\.aws\.amazon\.com$/u.test(parsed.hostname);
+  const origin = parsed.hostname.startsWith('s3.') || !isRegionalConsoleHost ? 'https://console.aws.amazon.com' : parsed.origin;
+  return `${origin}/iam/home#/policies$new`;
+}
+
+function buildDiagnosisLines(context: GuideRenderContext): string[] {
+  if (!context.step) {
+    return ['- No active guide step'];
+  }
+
+  const expectedPageKind = context.step.expectedPage;
+  const recommendedAction =
+    context.recoveryMode === 'searchS3'
+      ? 'Search for S3 in the AWS Console, then open Amazon S3.'
+      : context.recoveryMode === 'openIam'
+        ? 'Open IAM Policies and start Create policy.'
+        : context.isExpectedStepPage
+          ? 'Stay on this page and complete the highlighted step.'
+          : 'Inspect the current page state manually.';
+
+  return [
+    `- Expected page kind: ${expectedPageKind}`,
+    `- Recovery mode: ${context.recoveryMode}`,
+    `- Recommended action: ${recommendedAction}`
+  ];
+}
+
 function deriveGuideRenderContext(href: string, options?: { performSearchSideEffects?: boolean }): GuideRenderContext {
   const page = detectAwsPage(href);
   const step = currentStep();
@@ -671,8 +728,9 @@ function deriveGuideRenderContext(href: string, options?: { performSearchSideEff
   const isBucketCreateForm = Boolean(bucketFormTarget);
   const isBucketLanding = Boolean(step?.id === 'bucket' && !isBucketCreateForm && page.kind === 's3BucketsList');
   const isExpectedStepPage = Boolean(step && (matchesExpectedStepPage(step, page) || isBucketCreateForm));
-  const searchTarget = !isExpectedStepPage && !isBucketLanding && page.kind !== 'notAws' ? resolveAwsSearchTarget() : null;
-  const shouldSearchS3 = Boolean(searchTarget);
+  const recoveryMode = deriveRecoveryMode(step, page, isExpectedStepPage, isBucketLanding);
+  const searchTarget = recoveryMode === 'searchS3' ? resolveAwsSearchTarget() : null;
+  const shouldSearchS3 = recoveryMode === 'searchS3' && Boolean(searchTarget);
 
   if (shouldSearchS3 && options?.performSearchSideEffects) {
     putS3InSearch(searchTarget);
@@ -694,6 +752,7 @@ function deriveGuideRenderContext(href: string, options?: { performSearchSideEff
     page,
     step,
     stepIdentifier: step?.id ?? 'none',
+    recoveryMode,
     bucketFormTarget,
     isBucketCreateForm,
     isBucketLanding,
@@ -747,6 +806,9 @@ function buildDebugContextMarkdown(href: string): string {
     `- targetFound: ${String(Boolean(context.target))}`,
     `- substepsVisible: ${String(context.substepsVisible)}`,
     '',
+    '## Diagnosis',
+    ...buildDiagnosisLines(context),
+    '',
     '## Selector summaries',
     formatMarkdownList(context.selectorSummaries),
     '',
@@ -786,6 +848,7 @@ function renderCurrentGuideStep(): void {
   const createBucketTarget = context.createBucketTarget;
   const target = context.target;
   const shouldSearchS3 = context.shouldSearchS3;
+  const recoveryMode = context.recoveryMode;
   const keepFloatingWithoutBackdrop = context.keepFloatingWithoutBackdrop;
 
   if (shouldSearchS3 && !s3ServiceTarget) {
@@ -807,6 +870,8 @@ function renderCurrentGuideStep(): void {
       ? labels.openCreateBucket[activeLocale]
       : isExpectedStepPage
         ? step.body[activeLocale]
+        : recoveryMode === 'openIam'
+          ? labels.openIamPolicy[activeLocale]
         : page.kind === 'notAws'
           ? labels.notAws[activeLocale]
           : labels.wrongPage[activeLocale],
@@ -816,15 +881,17 @@ function renderCurrentGuideStep(): void {
     showBackdropWhenUntargeted: !shouldSearchS3 && !keepFloatingWithoutBackdrop,
     codeBlock: step.policyTemplate ?? null,
     primaryActionLabel:
-      shouldSearchS3
+      recoveryMode === 'searchS3'
         ? labels.searchS3[activeLocale]
+        : recoveryMode === 'openIam'
+          ? labels.openIam[activeLocale]
         : isBucketLanding
           ? labels.createBucket[activeLocale]
           : activeGuideState.activeStepIndex === steps.length - 1
             ? labels.exit[activeLocale]
             : labels.next[activeLocale],
     secondaryActionLabel: labels.exit[activeLocale],
-    canAdvance: isExpectedStepPage || shouldSearchS3 || isBucketLanding,
+    canAdvance: isExpectedStepPage || recoveryMode !== 'none' || isBucketLanding,
     onPrimaryAction: () => {
       if (!activeGuideState) {
         return;
@@ -836,8 +903,13 @@ function renderCurrentGuideStep(): void {
         return;
       }
 
-      if (shouldSearchS3) {
+      if (recoveryMode === 'searchS3') {
         putS3InSearch(searchTarget);
+        return;
+      }
+
+      if (recoveryMode === 'openIam') {
+        window.location.assign(buildIamPolicyCreateUrl(activeHref));
         return;
       }
 

@@ -24,11 +24,13 @@ export const ptBR: TranslationKeyMap = {
   'action.copyPolicyJson': 'Copiar JSON da política',
   'action.fill': 'Preencher campo',
   'action.openSpotlight': 'Abrir spotlight na AWS',
+  'action.openIam': 'Abrir IAM',
   'action.next': 'Próxima etapa',
   'action.exit': 'Sair do guia',
   'action.highlightField': 'Destacar campo',
   'action.done': 'Marcar como concluído',
   'status.localOnly': 'Roda localmente. Sem chamadas à API da AWS. Nenhum dado é enviado a servidores.',
   'error.notAws': 'Abra o Console da AWS para usar este guia.',
-  'error.wrongPage': 'Busque por S3 no Console da AWS e abra Amazon S3.'
+  'error.wrongPage': 'Busque por S3 no Console da AWS e abra Amazon S3.',
+  'error.openIamPolicy': 'Abra IAM Policies e inicie Create policy para continuar.'
 };
