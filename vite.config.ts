@@ -1,6 +1,5 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { resolve } from 'node:path';
 
 export default defineConfig({
   plugins: [react()],
@@ -8,10 +7,7 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
     rollupOptions: {
-      input: {
-        panel: resolve(__dirname, 'index.html'),
-        content: resolve(__dirname, 'src/content/main.ts')
-      },
+      input: ['index.html', 'src/content/main.ts'],
       output: {
         entryFileNames: '[name].js',
         chunkFileNames: 'assets/[name]-[hash].js',
