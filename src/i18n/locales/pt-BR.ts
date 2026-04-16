@@ -18,6 +18,7 @@ export const ptBR: TranslationKeyMap = {
   'guide.s3Iam.stepReview.body': 'Confirme que o bucket está privado e que a política IAM referencia apenas o bucket esperado.',
   'action.copy': 'Copiar sugestão',
   'action.fill': 'Preencher campo',
+  'action.highlightField': 'Destacar campo',
   'action.done': 'Marcar como concluído',
   'status.localOnly': 'Roda localmente. Sem chamadas à API da AWS. Nenhum dado é enviado a servidores.',
   'error.notAws': 'Abra o Console da AWS para usar este guia.',

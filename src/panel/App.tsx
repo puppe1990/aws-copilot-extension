@@ -3,6 +3,22 @@ import { createGuideState, currentStep, goNext, markDone } from '../guides/guide
 import { s3IamGuide } from '../guides/s3IamGuide';
 import { detectLocale, type Locale, t } from '../i18n';
 
+async function sendHighlight(selector: string): Promise<void> {
+  if (typeof chrome === 'undefined' || !chrome.tabs?.query || !chrome.tabs?.sendMessage) {
+    return;
+  }
+
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (tab?.id === undefined) {
+    return;
+  }
+
+  await chrome.tabs.sendMessage(tab.id, {
+    type: 'AWS_COPILOT_HIGHLIGHT',
+    selector
+  });
+}
+
 export function App() {
   const initialLocale = useMemo(() => detectLocale(), []);
   const [locale, setLocale] = useState<Locale>(initialLocale);
@@ -27,6 +43,11 @@ export function App() {
         </p>
         <h2>{t(locale, step.titleKey)}</h2>
         <p>{t(locale, step.bodyKey, values)}</p>
+        {step.highlightSelector ? (
+          <button type="button" onClick={() => void sendHighlight(step.highlightSelector!)}>
+            {t(locale, 'action.highlightField')}
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={() => {
