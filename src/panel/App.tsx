@@ -1,9 +1,14 @@
 import { useMemo, useState } from 'react';
+import { createGuideState, currentStep, goNext, markDone } from '../guides/guideEngine';
+import { s3IamGuide } from '../guides/s3IamGuide';
 import { detectLocale, type Locale, t } from '../i18n';
 
 export function App() {
   const initialLocale = useMemo(() => detectLocale(), []);
   const [locale, setLocale] = useState<Locale>(initialLocale);
+  const [guideState, setGuideState] = useState(() => createGuideState(s3IamGuide));
+  const step = currentStep(s3IamGuide, guideState);
+  const values = step.suggestedValues ?? {};
 
   return (
     <main>
@@ -15,8 +20,22 @@ export function App() {
         </select>
       </label>
       <h1>{t(locale, 'app.title')}</h1>
-      <p>{t(locale, 'app.subtitle')}</p>
       <p>{t(locale, 'status.localOnly')}</p>
+      <section>
+        <p>
+          Step {guideState.activeStepIndex + 1} of {s3IamGuide.steps.length}
+        </p>
+        <h2>{t(locale, step.titleKey)}</h2>
+        <p>{t(locale, step.bodyKey, values)}</p>
+        <button
+          type="button"
+          onClick={() => {
+            setGuideState((state) => goNext(s3IamGuide, markDone(state, step.id)));
+          }}
+        >
+          {t(locale, 'action.done')}
+        </button>
+      </section>
     </main>
   );
 }
