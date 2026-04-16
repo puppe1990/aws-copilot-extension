@@ -1,0 +1,23 @@
+export const en = {
+  'app.title': 'AWS Copilot',
+  'app.subtitle': 'Create an S3 bucket and IAM policy for app access.',
+  'language.label': 'Language',
+  'guide.start': 'Start guide',
+  'guide.s3Iam.title': 'S3 bucket + IAM policy',
+  'guide.s3Iam.stepObjective.title': 'Choose the objective',
+  'guide.s3Iam.stepObjective.body': 'This guide creates app access to S3 without opening the bucket publicly.',
+  'guide.s3Iam.stepBucketName.title': 'Create the bucket',
+  'guide.s3Iam.stepBucketName.body': 'Use a globally unique bucket name such as {bucketName}. Do not include secrets or customer data in the name.',
+  'guide.s3Iam.stepSecurity.title': 'Keep public access blocked',
+  'guide.s3Iam.stepSecurity.body': 'Block public access unless you have a specific reviewed reason to make objects public.',
+  'guide.s3Iam.stepIamPolicy.title': 'Create a least-privilege IAM policy',
+  'guide.s3Iam.stepIamPolicy.body': 'Scope the policy to this bucket and only the S3 actions your app needs.',
+  'guide.s3Iam.stepReview.title': 'Review the result',
+  'guide.s3Iam.stepReview.body': 'Confirm the bucket is private and the IAM policy references only the intended bucket.',
+  'action.copy': 'Copy suggestion',
+  'action.fill': 'Fill field',
+  'action.done': 'Mark done',
+  'status.localOnly': 'Runs locally. No AWS API calls. No data sent to servers.',
+  'error.notAws': 'Open the AWS Console to use this guide.',
+  'error.wrongPage': 'This step needs a different AWS Console page.'
+} as const;
