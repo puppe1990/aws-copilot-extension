@@ -1,4 +1,4 @@
-import { clearHighlight, highlightElement } from './highlight';
+import { clearHighlight, highlightElement, highlightSelector } from './highlight';
 import { detectAwsPage } from './pageDetection';
 
 it('detects non-AWS pages', () => {
@@ -21,5 +21,11 @@ it('adds and clears a highlight overlay', () => {
   expect(document.querySelector('[data-aws-copilot-highlight]')).toBeInTheDocument();
 
   clearHighlight();
+  expect(document.querySelector('[data-aws-copilot-highlight]')).not.toBeInTheDocument();
+});
+
+it("returns false for malformed highlight selectors", () => {
+  expect(() => highlightSelector('[')).not.toThrow();
+  expect(highlightSelector('[')).toBe(false);
   expect(document.querySelector('[data-aws-copilot-highlight]')).not.toBeInTheDocument();
 });

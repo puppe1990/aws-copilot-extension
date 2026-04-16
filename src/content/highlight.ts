@@ -23,7 +23,15 @@ export function highlightElement(target: HTMLElement): void {
 }
 
 export function highlightSelector(selector: string): boolean {
-  const target = document.querySelector(selector);
+  let target: Element | null;
+
+  try {
+    target = document.querySelector(selector);
+  } catch {
+    clearHighlight();
+    return false;
+  }
+
   if (!(target instanceof HTMLElement)) {
     clearHighlight();
     return false;
