@@ -2,6 +2,14 @@ import { assertSafeElement, assertSafeSelector } from '../safety/safetyRules';
 
 const HIGHLIGHT_ATTRIBUTE = 'data-aws-copilot-highlight';
 const GUIDE_CARD_ATTRIBUTE = 'data-aws-copilot-guide-card';
+const PAGE_SCROLL_LOCK_ATTRIBUTE = 'data-aws-copilot-scroll-lock';
+
+type ScrollLockState = {
+  htmlOverflow: string;
+  bodyOverflow: string;
+};
+
+let activeScrollLock: ScrollLockState | null = null;
 
 export type GuideOverlayContent = {
   progressLabel: string;
@@ -23,6 +31,7 @@ export type GuideOverlayContent = {
 
 export function clearHighlight(): void {
   document.querySelectorAll(`[${HIGHLIGHT_ATTRIBUTE}], [${GUIDE_CARD_ATTRIBUTE}]`).forEach((element) => element.remove());
+  unlockPageScroll();
 }
 
 function createLayer(className: string, attributeName = HIGHLIGHT_ATTRIBUTE): HTMLDivElement {
@@ -30,6 +39,31 @@ function createLayer(className: string, attributeName = HIGHLIGHT_ATTRIBUTE): HT
   element.setAttribute(attributeName, 'true');
   element.className = className;
   return element;
+}
+
+function lockPageScroll(): void {
+  if (activeScrollLock) {
+    return;
+  }
+
+  activeScrollLock = {
+    htmlOverflow: document.documentElement.style.overflow,
+    bodyOverflow: document.body.style.overflow
+  };
+  document.documentElement.style.overflow = 'hidden';
+  document.body.style.overflow = 'hidden';
+  document.documentElement.setAttribute(PAGE_SCROLL_LOCK_ATTRIBUTE, 'true');
+}
+
+function unlockPageScroll(): void {
+  if (!activeScrollLock) {
+    return;
+  }
+
+  document.documentElement.style.overflow = activeScrollLock.htmlOverflow;
+  document.body.style.overflow = activeScrollLock.bodyOverflow;
+  document.documentElement.removeAttribute(PAGE_SCROLL_LOCK_ATTRIBUTE);
+  activeScrollLock = null;
 }
 
 export function highlightElement(target: HTMLElement, options: { dimBackdrop?: boolean } = {}): void {
@@ -132,6 +166,8 @@ export function renderGuideOverlay(target: HTMLElement | null, content: GuideOve
     backdrop.style.background = 'rgba(2, 6, 23, 0.65)';
     document.body.appendChild(backdrop);
   }
+
+  lockPageScroll();
 
   const card = createLayer('', GUIDE_CARD_ATTRIBUTE);
   card.style.position = 'fixed';

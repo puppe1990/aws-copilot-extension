@@ -82,6 +82,35 @@ it('renders an inline guide overlay anchored to the target', () => {
   expect(document.body).toHaveTextContent('Enter a globally unique bucket name.');
 });
 
+it('locks page scroll while the guide overlay is visible and restores it when cleared', () => {
+  clearHighlight();
+  document.body.innerHTML = '<button id="create-bucket">Create bucket</button>';
+  const target = document.getElementById('create-bucket') as HTMLElement;
+  document.documentElement.style.overflow = 'auto';
+  document.body.style.overflow = 'clip';
+  const previousHtmlOverflow = document.documentElement.style.overflow;
+  const previousBodyOverflow = document.body.style.overflow;
+
+  renderGuideOverlay(target, {
+    stepTitle: 'Create the bucket',
+    stepBody: 'Use a globally unique bucket name.',
+    progressLabel: 'Step 2 of 5',
+    primaryActionLabel: 'Next step',
+    secondaryActionLabel: 'Exit guide',
+    canAdvance: true,
+    onPrimaryAction: vi.fn(),
+    onSecondaryAction: vi.fn()
+  });
+
+  expect(document.documentElement.style.overflow).toBe('hidden');
+  expect(document.body.style.overflow).toBe('hidden');
+
+  clearHighlight();
+
+  expect(document.documentElement.style.overflow).toBe(previousHtmlOverflow);
+  expect(document.body.style.overflow).toBe(previousBodyOverflow);
+});
+
 it('keeps the guide actions inside the viewport when the overlay is taller than the position estimate', () => {
   document.body.innerHTML = '<button id="create-bucket">Create bucket</button>';
   const target = document.getElementById('create-bucket') as HTMLElement;
