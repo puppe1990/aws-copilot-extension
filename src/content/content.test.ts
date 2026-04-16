@@ -13,6 +13,14 @@ it('detects AWS IAM pages', () => {
   expect(detectAwsPage('https://us-east-1.console.aws.amazon.com/iam/home#/policies$new')).toEqual({ kind: 'iam' });
 });
 
+it('does not classify query string service names as S3', () => {
+  expect(detectAwsPage('https://ec2.console.aws.amazon.com/ec2/home?next=/s3')).toEqual({ kind: 'awsUnknown' });
+});
+
+it('does not classify non-iam hash fragments as IAM', () => {
+  expect(detectAwsPage('https://lambda.console.aws.amazon.com/lambda/home#/iam-not-service')).toEqual({ kind: 'awsUnknown' });
+});
+
 it('adds and clears a highlight overlay', () => {
   document.body.innerHTML = '<input id="bucket" />';
   const target = document.getElementById('bucket') as HTMLElement;
