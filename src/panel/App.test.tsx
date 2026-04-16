@@ -10,6 +10,7 @@ afterEach(() => {
 it('renders the extension name', () => {
   render(<App />);
   expect(screen.getByRole('heading', { name: 'AWS Copilot' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Start guide' })).toBeInTheDocument();
 });
 
 it('switches to Portuguese', async () => {
@@ -20,15 +21,9 @@ it('switches to Portuguese', async () => {
   ).toBeInTheDocument();
 });
 
-it('advances through the guide', async () => {
-  render(<App />);
-  expect(screen.getByRole('heading', { name: 'Choose the objective' })).toBeInTheDocument();
-  await userEvent.click(screen.getByRole('button', { name: 'Mark done' }));
-  expect(screen.getByRole('heading', { name: 'Create the bucket' })).toBeInTheDocument();
-});
-
-it('sends a highlight message for the current step', async () => {
+it('starts the guide in the AWS Console', async () => {
   const sendMessage = vi.fn().mockResolvedValue(undefined);
+  const close = vi.spyOn(window, 'close').mockImplementation(() => undefined);
   vi.stubGlobal('chrome', {
     tabs: {
       query: vi.fn().mockResolvedValue([{ id: 42 }]),
@@ -38,17 +33,19 @@ it('sends a highlight message for the current step', async () => {
 
   render(<App />);
 
-  await userEvent.click(screen.getByRole('button', { name: 'Mark done' }));
-  await userEvent.click(screen.getByRole('button', { name: 'Highlight field' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Start guide' }));
 
   expect(sendMessage).toHaveBeenCalledWith(42, {
-    type: 'AWS_COPILOT_HIGHLIGHT',
-    selector: '[data-testid="bucket-name"], input[name="bucketName"], input[aria-label*="Bucket"]'
+    type: 'AWS_COPILOT_START_GUIDE',
+    guideId: 's3-iam-app-access',
+    locale: 'en'
   });
+  expect(close).toHaveBeenCalled();
 });
 
-it('does not throw when the highlight message is rejected', async () => {
+it('does not throw when the start message is rejected', async () => {
   const sendMessage = vi.fn().mockRejectedValue(new Error('Receiving end does not exist'));
+  const close = vi.spyOn(window, 'close').mockImplementation(() => undefined);
   vi.stubGlobal('chrome', {
     tabs: {
       query: vi.fn().mockResolvedValue([{ id: 42 }]),
@@ -58,17 +55,18 @@ it('does not throw when the highlight message is rejected', async () => {
 
   render(<App />);
 
-  await userEvent.click(screen.getByRole('button', { name: 'Mark done' }));
-  await expect(userEvent.click(screen.getByRole('button', { name: 'Highlight field' }))).resolves.toBeUndefined();
+  await expect(userEvent.click(screen.getByRole('button', { name: 'Start guide' }))).resolves.toBeUndefined();
   await new Promise((resolve) => setTimeout(resolve, 0));
 
   expect(sendMessage).toHaveBeenCalledWith(42, {
-    type: 'AWS_COPILOT_HIGHLIGHT',
-    selector: '[data-testid="bucket-name"], input[name="bucketName"], input[aria-label*="Bucket"]'
+    type: 'AWS_COPILOT_START_GUIDE',
+    guideId: 's3-iam-app-access',
+    locale: 'en'
   });
+  expect(close).not.toHaveBeenCalled();
 });
 
-it('shows recovery text and disables highlight outside AWS', async () => {
+it('shows recovery text outside AWS after the guide is started', async () => {
   const sendMessage = vi.fn().mockResolvedValue({
     ok: true,
     page: { kind: 'notAws' }
@@ -81,16 +79,13 @@ it('shows recovery text and disables highlight outside AWS', async () => {
   });
 
   render(<App />);
-  await userEvent.click(screen.getByRole('button', { name: 'Mark done' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Start guide' }));
 
   expect(await screen.findByText('Open the AWS Console to use this guide.')).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Highlight field' })).toBeDisabled();
-
-  await userEvent.click(screen.getByRole('button', { name: 'Mark done' }));
-  expect(screen.getByRole('heading', { name: 'Keep public access blocked' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Restart guide' })).toBeEnabled();
 });
 
-it('shows wrong-page recovery text when the detected page does not match the step', async () => {
+it('shows S3 search recovery when the current page does not match', async () => {
   const sendMessage = vi.fn().mockResolvedValue({
     ok: true,
     page: { kind: 's3BucketSettings' }
@@ -103,10 +98,11 @@ it('shows wrong-page recovery text when the detected page does not match the ste
   });
 
   render(<App />);
-  await userEvent.click(screen.getByRole('button', { name: 'Mark done' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Start guide' }));
 
-  expect(await screen.findByText('This step needs a different AWS Console page.')).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Highlight field' })).toBeDisabled();
+  expect(await screen.findByText('Search for S3 in the AWS Console, then open Amazon S3.')).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Create the bucket' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Open spotlight in AWS' })).toBeEnabled();
 });
 
 it('renders an IAM policy template and wires copy to clipboard', async () => {
@@ -119,9 +115,9 @@ it('renders an IAM policy template and wires copy to clipboard', async () => {
 
   render(<App />);
 
-  await userEvent.click(screen.getByRole('button', { name: 'Mark done' }));
-  await userEvent.click(screen.getByRole('button', { name: 'Mark done' }));
-  await userEvent.click(screen.getByRole('button', { name: 'Mark done' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Start guide' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Next step' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Next step' }));
 
   expect(screen.getByText(/"s3:GetObject"/)).toBeInTheDocument();
   expect(screen.getByText(/"arn:aws:s3:::my-app-uploads-prod\/\*"/)).toBeInTheDocument();
@@ -129,4 +125,11 @@ it('renders an IAM policy template and wires copy to clipboard', async () => {
   await userEvent.click(screen.getByRole('button', { name: 'Copy policy JSON' }));
 
   expect(writeText).toHaveBeenCalledWith(expect.stringContaining('"s3:DeleteObject"'));
+});
+
+it('starts at the first actionable S3 step', async () => {
+  render(<App />);
+
+  await userEvent.click(screen.getByRole('button', { name: 'Start guide' }));
+  expect(screen.getByRole('heading', { name: 'Create the bucket' })).toBeInTheDocument();
 });

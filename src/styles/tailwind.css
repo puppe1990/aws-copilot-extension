@@ -1,0 +1,18 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-copilot-ink: #0f172a;
+  --color-copilot-panel: #111827;
+  --color-copilot-panel-soft: #172033;
+  --color-copilot-line: rgba(148, 163, 184, 0.22);
+  --color-copilot-copy: #e5edf8;
+  --color-copilot-mute: #9fb0c9;
+  --color-copilot-accent: #ff9900;
+  --color-copilot-accent-soft: #ffb84d;
+}
+
+@layer base {
+  body {
+    @apply bg-slate-950 text-slate-100 antialiased;
+  }
+}

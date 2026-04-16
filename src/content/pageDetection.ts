@@ -1,6 +1,7 @@
 export type AwsPage =
   | { kind: 'notAws' }
   | { kind: 'awsUnknown' }
+  | { kind: 's3BucketsList' }
   | { kind: 's3CreateBucket' }
   | { kind: 's3BucketSettings' }
   | { kind: 'iamCreatePolicy' };
@@ -19,6 +20,10 @@ export function detectAwsPage(url: string): AwsPage {
     return { kind: 's3CreateBucket' };
   }
 
+  if (isS3BucketsListPage(hostname, pathname)) {
+    return { kind: 's3BucketsList' };
+  }
+
   if (isS3BucketSettingsPage(hostname, pathname)) {
     return { kind: 's3BucketSettings' };
   }
@@ -30,12 +35,23 @@ export function detectAwsPage(url: string): AwsPage {
   return { kind: 'awsUnknown' };
 }
 
+function isS3BucketsListPage(hostname: string, pathname: string): boolean {
+  return isS3ConsoleRoute(hostname, pathname) && (pathname === '/s3/home' || pathname === '/s3/buckets' || pathname === '/s3');
+}
+
 function isS3CreateBucketPage(hostname: string, pathname: string): boolean {
-  return hostname.startsWith('s3.') && pathname.startsWith('/s3/bucket/create');
+  return isS3ConsoleRoute(hostname, pathname) && pathname.startsWith('/s3/bucket/create');
 }
 
 function isS3BucketSettingsPage(hostname: string, pathname: string): boolean {
-  return hostname.startsWith('s3.') && /^\/s3\/buckets\/[^/]+\/(?:permissions|properties|management|metrics|access-points)/u.test(pathname);
+  return (
+    isS3ConsoleRoute(hostname, pathname) &&
+    /^\/s3\/buckets\/[^/]+\/(?:permissions|properties|management|metrics|access-points)/u.test(pathname)
+  );
+}
+
+function isS3ConsoleRoute(hostname: string, pathname: string): boolean {
+  return hostname.startsWith('s3.') || pathname.startsWith('/s3/');
 }
 
 function isIamCreatePolicyPage(pathname: string, hash: string): boolean {

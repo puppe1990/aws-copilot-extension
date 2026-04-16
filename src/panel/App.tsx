@@ -4,7 +4,9 @@ import { renderIamPolicyTemplate, s3IamGuide } from '../guides/s3IamGuide';
 import type { AwsPage } from '../content/pageDetection';
 import { detectLocale, type Locale, t } from '../i18n';
 
-async function sendHighlight(selector: string): Promise<boolean> {
+const startStepId = 'objective';
+
+async function sendToActiveTab(payload: Record<string, unknown>): Promise<boolean> {
   try {
     if (typeof chrome === 'undefined' || !chrome.tabs?.query || !chrome.tabs?.sendMessage) {
       return false;
@@ -15,15 +17,15 @@ async function sendHighlight(selector: string): Promise<boolean> {
       return false;
     }
 
-    await chrome.tabs.sendMessage(tab.id, {
-      type: 'AWS_COPILOT_HIGHLIGHT',
-      selector
-    });
-
+    await chrome.tabs.sendMessage(tab.id, payload);
     return true;
   } catch {
     return false;
   }
+}
+
+function closeLauncherPopup(): void {
+  window.close();
 }
 
 async function detectActivePage(): Promise<AwsPage | null> {
@@ -72,11 +74,17 @@ export function App() {
   const initialLocale = useMemo(() => detectLocale(), []);
   const [locale, setLocale] = useState<Locale>(initialLocale);
   const [guideState, setGuideState] = useState(() => createGuideState(s3IamGuide));
+  const [started, setStarted] = useState(false);
+  const [detectedPage, setDetectedPage] = useState<AwsPage | null>(null);
   const step = currentStep(s3IamGuide, guideState);
   const values = step.suggestedValues ?? {};
-  const [detectedPage, setDetectedPage] = useState<AwsPage | null>(null);
+  const policyTemplate = step.policyTemplate ? renderIamPolicyTemplate(step.policyTemplate, values) : null;
 
   useEffect(() => {
+    if (!started) {
+      return;
+    }
+
     let cancelled = false;
 
     void detectActivePage().then((page) => {
@@ -88,7 +96,7 @@ export function App() {
     return () => {
       cancelled = true;
     };
-  }, [step.id]);
+  }, [started, step.id]);
 
   const recoveryMessage =
     detectedPage?.kind === 'notAws'
@@ -96,54 +104,155 @@ export function App() {
       : detectedPage && !matchesExpectedPage(step.expectedPage, detectedPage)
         ? t(locale, 'error.wrongPage')
         : null;
-  const canHighlight = Boolean(step.highlightSelector) && recoveryMessage === null;
-  const policyTemplate = step.policyTemplate ? renderIamPolicyTemplate(step.policyTemplate, values) : null;
+
+  async function syncGuideOverlay(activeStepIndex: number): Promise<void> {
+    const sent = await sendToActiveTab({
+      type: 'AWS_COPILOT_RENDER_GUIDE_STEP',
+      guideId: s3IamGuide.id,
+      locale,
+      activeStepIndex
+    });
+
+    if (sent) {
+      closeLauncherPopup();
+    }
+  }
+
+  async function startGuide(): Promise<void> {
+    const initialState = goNext(s3IamGuide, markDone(createGuideState(s3IamGuide), startStepId));
+    setStarted(true);
+    setGuideState(initialState);
+    const sent = await sendToActiveTab({
+      type: 'AWS_COPILOT_START_GUIDE',
+      guideId: s3IamGuide.id,
+      locale
+    });
+
+    if (sent) {
+      closeLauncherPopup();
+    }
+  }
+
+  async function advanceGuide(): Promise<void> {
+    const nextState = goNext(s3IamGuide, markDone(guideState, step.id));
+    setGuideState(nextState);
+    await syncGuideOverlay(nextState.activeStepIndex);
+  }
 
   return (
-    <main>
-      <label>
-        {t(locale, 'language.label')}
-        <select value={locale} onChange={(event) => setLocale(event.target.value as Locale)}>
-          <option value="en">English</option>
-          <option value="pt-BR">Português (Brasil)</option>
-        </select>
-      </label>
-      <h1>{t(locale, 'app.title')}</h1>
-      <p>{t(locale, 'status.localOnly')}</p>
-      <section>
-        <p>
-          Step {guideState.activeStepIndex + 1} of {s3IamGuide.steps.length}
-        </p>
-        <h2>{t(locale, step.titleKey)}</h2>
-        <p>{t(locale, step.bodyKey, values)}</p>
-        {recoveryMessage ? <p>{recoveryMessage}</p> : null}
-        {policyTemplate ? <pre>{policyTemplate}</pre> : null}
-        {policyTemplate ? (
-          <button type="button" onClick={() => void copyToClipboard(policyTemplate)}>
-            {t(locale, 'action.copyPolicyJson')}
-          </button>
-        ) : null}
-        {step.highlightSelector ? (
-          <button
-            type="button"
-            disabled={!canHighlight}
-            onClick={() => {
-              if (canHighlight) {
-                void sendHighlight(step.highlightSelector!);
-              }
-            }}
-          >
-            {t(locale, 'action.highlightField')}
-          </button>
-        ) : null}
-        <button
-          type="button"
-          onClick={() => {
-            setGuideState((state) => goNext(s3IamGuide, markDone(state, step.id)));
-          }}
-        >
-          {t(locale, 'action.done')}
-        </button>
+    <main className="w-[380px] bg-[radial-gradient(circle_at_top,_rgba(255,153,0,0.18),_transparent_38%),linear-gradient(180deg,_#111827_0%,_#0b1220_100%)] p-4 text-slate-50">
+      <section className="overflow-hidden rounded-[28px] border border-white/10 bg-slate-950/70 shadow-[0_24px_80px_rgba(15,23,42,0.55)] backdrop-blur">
+        <div className="border-b border-white/10 px-5 py-4">
+          <div className="mb-3 flex items-start justify-between gap-4">
+            <div>
+              <p className="mb-2 inline-flex rounded-full border border-amber-400/25 bg-amber-400/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-amber-200">
+                {t(locale, 'app.panelBadge')}
+              </p>
+              <h1 className="text-3xl font-black leading-none tracking-[-0.04em] text-white">{t(locale, 'app.title')}</h1>
+            </div>
+            <label className="flex min-w-[120px] flex-col gap-1 text-[11px] font-medium uppercase tracking-[0.2em] text-slate-400">
+              {t(locale, 'language.label')}
+              <select
+                className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium tracking-normal text-slate-100 outline-none transition focus:border-amber-400/60"
+                value={locale}
+                onChange={(event) => setLocale(event.target.value as Locale)}
+              >
+                <option value="en">English</option>
+                <option value="pt-BR">Português (Brasil)</option>
+              </select>
+            </label>
+          </div>
+          <p className="max-w-[28ch] text-sm leading-6 text-slate-300">{t(locale, 'app.panelBody')}</p>
+          <p className="mt-3 text-xs leading-5 text-slate-500">{t(locale, 'status.localOnly')}</p>
+        </div>
+
+        {!started ? (
+          <div className="space-y-5 px-5 py-5">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">{t(locale, s3IamGuide.titleKey)}</p>
+              <h2 className="mt-3 text-2xl font-semibold leading-tight tracking-[-0.03em] text-white">{t(locale, 'app.subtitle')}</h2>
+              <p className="mt-3 text-sm leading-6 text-slate-300">
+                {s3IamGuide.steps.length} steps. Spotlight guidance anchored to the AWS Console.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="w-full rounded-2xl bg-amber-400 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-amber-300"
+              onClick={() => void startGuide()}
+            >
+              {t(locale, 'guide.start')}
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4 px-5 py-5">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+                Step {guideState.activeStepIndex + 1} of {s3IamGuide.steps.length}
+              </p>
+              <p className="text-xs font-medium text-emerald-300">{t(locale, 'guide.launchStatus')}</p>
+            </div>
+
+            <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-300 transition-[width]"
+                style={{
+                  width: `${((guideState.activeStepIndex + 1) / s3IamGuide.steps.length) * 100}%`
+                }}
+              />
+            </div>
+
+            <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+              <h2 className="text-2xl font-semibold leading-tight tracking-[-0.03em] text-white">{t(locale, step.titleKey)}</h2>
+              <p className="mt-3 text-sm leading-6 text-slate-300">{t(locale, step.bodyKey, values)}</p>
+              {recoveryMessage ? (
+                <p className="mt-4 rounded-2xl border border-rose-400/25 bg-rose-500/10 px-3 py-2 text-sm text-rose-100">
+                  {recoveryMessage}
+                </p>
+              ) : null}
+              {policyTemplate ? (
+                <pre className="mt-4 overflow-x-auto rounded-2xl border border-white/10 bg-slate-950/80 p-4 text-xs leading-6 text-slate-200">
+                  {policyTemplate}
+                </pre>
+              ) : null}
+            </section>
+
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                disabled={detectedPage?.kind === 'notAws'}
+                className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={() => void syncGuideOverlay(guideState.activeStepIndex)}
+              >
+                {t(locale, 'action.openSpotlight')}
+              </button>
+              <button
+                type="button"
+                className="rounded-2xl bg-amber-400 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-amber-300"
+                onClick={() => void advanceGuide()}
+              >
+                {t(locale, 'action.next')}
+              </button>
+            </div>
+
+            {policyTemplate ? (
+              <button
+                type="button"
+                className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-white/[0.08]"
+                onClick={() => void copyToClipboard(policyTemplate)}
+              >
+                {t(locale, 'action.copyPolicyJson')}
+              </button>
+            ) : null}
+
+            <button
+              type="button"
+              className="w-full rounded-2xl border border-white/10 bg-transparent px-4 py-3 text-sm font-semibold text-slate-400 transition hover:border-white/20 hover:text-white"
+              onClick={() => void startGuide()}
+            >
+              {t(locale, 'guide.restart')}
+            </button>
+          </div>
+        )}
       </section>
     </main>
   );

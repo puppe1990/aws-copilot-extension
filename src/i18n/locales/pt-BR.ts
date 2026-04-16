@@ -3,8 +3,12 @@ import type { TranslationKeyMap } from '../index';
 export const ptBR: TranslationKeyMap = {
   'app.title': 'AWS Copilot',
   'app.subtitle': 'Crie um bucket S3 e uma política IAM para acesso da aplicação.',
+  'app.panelBadge': 'Roda dentro do Console da AWS',
+  'app.panelBody': 'Inicie o guia e siga o spotlight diretamente na interface da AWS.',
   'language.label': 'Idioma',
   'guide.start': 'Iniciar guia',
+  'guide.restart': 'Reiniciar guia',
+  'guide.launchStatus': 'Guia iniciado no Console da AWS',
   'guide.s3Iam.title': 'Bucket S3 + política IAM',
   'guide.s3Iam.stepObjective.title': 'Escolha o objetivo',
   'guide.s3Iam.stepObjective.body': 'Este guia cria acesso de aplicação ao S3 sem abrir o bucket publicamente.',
@@ -19,9 +23,12 @@ export const ptBR: TranslationKeyMap = {
   'action.copy': 'Copiar sugestão',
   'action.copyPolicyJson': 'Copiar JSON da política',
   'action.fill': 'Preencher campo',
+  'action.openSpotlight': 'Abrir spotlight na AWS',
+  'action.next': 'Próxima etapa',
+  'action.exit': 'Sair do guia',
   'action.highlightField': 'Destacar campo',
   'action.done': 'Marcar como concluído',
   'status.localOnly': 'Roda localmente. Sem chamadas à API da AWS. Nenhum dado é enviado a servidores.',
   'error.notAws': 'Abra o Console da AWS para usar este guia.',
-  'error.wrongPage': 'Esta etapa precisa de outra página do Console da AWS.'
+  'error.wrongPage': 'Busque por S3 no Console da AWS e abra Amazon S3.'
 };

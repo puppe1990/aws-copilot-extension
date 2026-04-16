@@ -1,8 +1,12 @@
 export const en = {
   'app.title': 'AWS Copilot',
   'app.subtitle': 'Create an S3 bucket and IAM policy for app access.',
+  'app.panelBadge': 'Runs inside AWS Console',
+  'app.panelBody': 'Start the guide, then follow the spotlight directly in the AWS interface.',
   'language.label': 'Language',
   'guide.start': 'Start guide',
+  'guide.restart': 'Restart guide',
+  'guide.launchStatus': 'Guide launched in AWS Console',
   'guide.s3Iam.title': 'S3 bucket + IAM policy',
   'guide.s3Iam.stepObjective.title': 'Choose the objective',
   'guide.s3Iam.stepObjective.body': 'This guide creates app access to S3 without opening the bucket publicly.',
@@ -17,9 +21,12 @@ export const en = {
   'action.copy': 'Copy suggestion',
   'action.copyPolicyJson': 'Copy policy JSON',
   'action.fill': 'Fill field',
+  'action.openSpotlight': 'Open spotlight in AWS',
+  'action.next': 'Next step',
+  'action.exit': 'Exit guide',
   'action.highlightField': 'Highlight field',
   'action.done': 'Mark done',
   'status.localOnly': 'Runs locally. No AWS API calls. No data sent to servers.',
   'error.notAws': 'Open the AWS Console to use this guide.',
-  'error.wrongPage': 'This step needs a different AWS Console page.'
+  'error.wrongPage': 'Search for S3 in the AWS Console, then open Amazon S3.'
 } as const;
