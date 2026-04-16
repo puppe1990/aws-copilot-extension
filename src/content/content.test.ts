@@ -82,6 +82,82 @@ it('renders an inline guide overlay anchored to the target', () => {
   expect(document.body).toHaveTextContent('Enter a globally unique bucket name.');
 });
 
+it('keeps the guide actions inside the viewport when the overlay is taller than the position estimate', () => {
+  document.body.innerHTML = '<button id="create-bucket">Create bucket</button>';
+  const target = document.getElementById('create-bucket') as HTMLElement;
+  const originalInnerHeight = window.innerHeight;
+  const originalInnerWidth = window.innerWidth;
+  const offsetHeightDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetHeight');
+  const offsetWidthDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetWidth');
+
+  Object.defineProperty(window, 'innerHeight', {
+    configurable: true,
+    value: 900
+  });
+  Object.defineProperty(window, 'innerWidth', {
+    configurable: true,
+    value: 1440
+  });
+  vi.spyOn(target, 'getBoundingClientRect').mockReturnValue({
+    x: 48,
+    y: 430,
+    left: 48,
+    top: 430,
+    right: 944,
+    bottom: 462,
+    width: 896,
+    height: 32,
+    toJSON: () => ({})
+  } as DOMRect);
+  Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
+    configurable: true,
+    get() {
+      return this.getAttribute?.('data-aws-copilot-guide-card') === 'true' ? 460 : 0;
+    }
+  });
+  Object.defineProperty(HTMLElement.prototype, 'offsetWidth', {
+    configurable: true,
+    get() {
+      return this.getAttribute?.('data-aws-copilot-guide-card') === 'true' ? 360 : 0;
+    }
+  });
+
+  renderGuideOverlay(target, {
+    stepTitle: 'Create the bucket',
+    stepBody: 'Use a globally unique bucket name.',
+    substeps: [
+      'Keep the default General purpose type.',
+      'Leave Global namespace selected.',
+      'Enter a globally unique bucket name.',
+      'Do not put secrets in the bucket name.'
+    ],
+    progressLabel: 'Step 2 of 5',
+    primaryActionLabel: 'Next step',
+    secondaryActionLabel: 'Exit guide',
+    canAdvance: true,
+    onPrimaryAction: vi.fn(),
+    onSecondaryAction: vi.fn()
+  });
+
+  const guideCard = document.querySelector('[data-aws-copilot-guide-card]') as HTMLElement;
+  expect(Number.parseInt(guideCard.style.top, 10)).toBeLessThanOrEqual(424);
+
+  if (offsetHeightDescriptor) {
+    Object.defineProperty(HTMLElement.prototype, 'offsetHeight', offsetHeightDescriptor);
+  }
+  if (offsetWidthDescriptor) {
+    Object.defineProperty(HTMLElement.prototype, 'offsetWidth', offsetWidthDescriptor);
+  }
+  Object.defineProperty(window, 'innerHeight', {
+    configurable: true,
+    value: originalInnerHeight
+  });
+  Object.defineProperty(window, 'innerWidth', {
+    configurable: true,
+    value: originalInnerWidth
+  });
+});
+
 it("returns false for malformed highlight selectors", () => {
   expect(() => highlightSelector('[')).not.toThrow();
   expect(highlightSelector('[')).toBe(false);

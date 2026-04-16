@@ -75,6 +75,49 @@ function createActionButton(label: string, variant: 'primary' | 'secondary', onC
   return button;
 }
 
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
+
+function positionGuideCard(card: HTMLDivElement, target: HTMLElement | null, placement: GuideOverlayContent['placement']): void {
+  card.style.left = '';
+  card.style.right = '';
+  card.style.top = '';
+  card.style.bottom = '';
+
+  if (placement === 'bottomRight') {
+    card.style.right = '24px';
+    card.style.bottom = '24px';
+    return;
+  }
+
+  if (!target) {
+    card.style.top = '24px';
+    card.style.right = '24px';
+    return;
+  }
+
+  const margin = 16;
+  const gap = 20;
+  const rect = target.getBoundingClientRect();
+  const cardHeight = Math.max(card.offsetHeight, 320);
+  const cardWidth = Math.max(card.offsetWidth, 320);
+  const topBelow = rect.bottom + gap;
+  const topAbove = rect.top - gap - cardHeight;
+  const maxTop = Math.max(margin, window.innerHeight - cardHeight - margin);
+  const maxLeft = Math.max(margin, window.innerWidth - cardWidth - margin);
+  const top =
+    topBelow + cardHeight <= window.innerHeight - margin
+      ? topBelow
+      : topAbove >= margin
+        ? topAbove
+        : clamp(maxTop, margin, maxTop);
+  const left = clamp(rect.left, margin, maxLeft);
+
+  card.style.top = `${top}px`;
+  card.style.left = `${left}px`;
+}
+
 export function renderGuideOverlay(target: HTMLElement | null, content: GuideOverlayContent): void {
   clearHighlight();
 
@@ -95,27 +138,15 @@ export function renderGuideOverlay(target: HTMLElement | null, content: GuideOve
   card.style.zIndex = '2147483647';
   card.style.width = '360px';
   card.style.maxWidth = 'calc(100vw - 32px)';
-  card.style.overflow = 'hidden';
+  card.style.maxHeight = 'calc(100vh - 32px)';
+  card.style.overflowX = 'hidden';
+  card.style.overflowY = 'auto';
   card.style.borderRadius = '28px';
   card.style.border = '1px solid rgba(255, 255, 255, 0.1)';
   card.style.background = 'rgba(2, 6, 23, 0.95)';
   card.style.color = '#f8fafc';
   card.style.boxShadow = '0 28px 90px rgba(15, 23, 42, 0.6)';
   card.style.backdropFilter = 'blur(18px)';
-
-  if (content.placement === 'bottomRight') {
-    card.style.right = '24px';
-    card.style.bottom = '24px';
-  } else if (target) {
-    const rect = target.getBoundingClientRect();
-    const cardTop = rect.bottom + 20 + 280 < window.innerHeight ? rect.bottom + 20 : Math.max(16, rect.top - 300);
-    const cardLeft = Math.min(Math.max(16, rect.left), Math.max(16, window.innerWidth - 376));
-    card.style.top = `${cardTop}px`;
-    card.style.left = `${cardLeft}px`;
-  } else {
-    card.style.top = '24px';
-    card.style.right = '24px';
-  }
 
   const inner = document.createElement('div');
   inner.style.display = 'grid';
@@ -199,6 +230,7 @@ export function renderGuideOverlay(target: HTMLElement | null, content: GuideOve
 
   card.appendChild(inner);
   document.body.appendChild(card);
+  positionGuideCard(card, target, content.placement);
 }
 
 export function resolveHighlightTarget(selector: string): HTMLElement | null {
