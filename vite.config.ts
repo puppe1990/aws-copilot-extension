@@ -7,7 +7,10 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
     rollupOptions: {
-      input: ['index.html', 'src/content/main.ts'],
+      input: {
+        panel: 'index.html',
+        content: 'src/content/main.ts'
+      },
       output: {
         entryFileNames: '[name].js',
         chunkFileNames: 'assets/[name]-[hash].js',
