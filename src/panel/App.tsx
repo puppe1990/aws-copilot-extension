@@ -3,20 +3,26 @@ import { createGuideState, currentStep, goNext, markDone } from '../guides/guide
 import { s3IamGuide } from '../guides/s3IamGuide';
 import { detectLocale, type Locale, t } from '../i18n';
 
-async function sendHighlight(selector: string): Promise<void> {
-  if (typeof chrome === 'undefined' || !chrome.tabs?.query || !chrome.tabs?.sendMessage) {
-    return;
-  }
+async function sendHighlight(selector: string): Promise<boolean> {
+  try {
+    if (typeof chrome === 'undefined' || !chrome.tabs?.query || !chrome.tabs?.sendMessage) {
+      return false;
+    }
 
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (tab?.id === undefined) {
-    return;
-  }
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab?.id === undefined) {
+      return false;
+    }
 
-  await chrome.tabs.sendMessage(tab.id, {
-    type: 'AWS_COPILOT_HIGHLIGHT',
-    selector
-  });
+    await chrome.tabs.sendMessage(tab.id, {
+      type: 'AWS_COPILOT_HIGHLIGHT',
+      selector
+    });
+
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function App() {

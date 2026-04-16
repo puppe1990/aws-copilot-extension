@@ -46,3 +46,24 @@ it('sends a highlight message for the current step', async () => {
     selector: '[data-testid="bucket-name"], input[name="bucketName"], input[aria-label*="Bucket"]'
   });
 });
+
+it('does not throw when the highlight message is rejected', async () => {
+  const sendMessage = vi.fn().mockRejectedValue(new Error('Receiving end does not exist'));
+  vi.stubGlobal('chrome', {
+    tabs: {
+      query: vi.fn().mockResolvedValue([{ id: 42 }]),
+      sendMessage
+    }
+  });
+
+  render(<App />);
+
+  await userEvent.click(screen.getByRole('button', { name: 'Mark done' }));
+  await expect(userEvent.click(screen.getByRole('button', { name: 'Highlight field' }))).resolves.toBeUndefined();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  expect(sendMessage).toHaveBeenCalledWith(42, {
+    type: 'AWS_COPILOT_HIGHLIGHT',
+    selector: '[data-testid="bucket-name"], input[name="bucketName"], input[aria-label*="Bucket"]'
+  });
+});
