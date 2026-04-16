@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "AWS Copilot",
+  "version": "0.1.0",
+  "description": "Local guided walkthroughs for AWS Console tasks.",
+  "action": {
+    "default_title": "AWS Copilot",
+    "default_popup": "index.html"
+  },
+  "permissions": ["storage", "activeTab", "scripting"],
+  "host_permissions": ["https://*.console.aws.amazon.com/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://*.console.aws.amazon.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
