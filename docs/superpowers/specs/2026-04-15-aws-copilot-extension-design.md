@@ -16,6 +16,7 @@ The first guided objective is:
 - Keep public access blocked.
 - Create an IAM policy scoped to that bucket.
 - Review the final configuration with a checklist.
+- Support English and Brazilian Portuguese in the extension UI and guide content.
 
 ## MVP Scope
 
@@ -30,6 +31,13 @@ The flow has five steps:
 5. Review a final checklist and explain what the user should verify next.
 
 The MVP may offer copyable suggestions or assisted field filling, but every meaningful AWS action remains user-confirmed.
+
+The MVP must support two locales:
+
+- `en` for English.
+- `pt-BR` for Brazilian Portuguese.
+
+The extension should choose the initial locale from the browser language when possible and provide a manual language switcher in the extension UI. English is the fallback locale when a translation key is missing.
 
 ## Explicit Non-Goals
 
@@ -61,6 +69,8 @@ These constraints should be visible in product copy and permissions requested by
 
 The extension exposes a panel or popup where the user chooses a curated task. For the MVP, only one task is required: `Create S3 bucket + IAM policy for app access`.
 
+All user-facing product copy in the panel, overlays, actions, guide steps, recovery states, and final checklist must come from localization files. Internal step IDs, selectors, completion rules, and safety rules must remain language-independent.
+
 When the user starts the task, the extension:
 
 - Detects whether the user is on the expected AWS Console page.
@@ -89,11 +99,23 @@ Stores the curated flow as structured step definitions. Each step defines:
 
 - Expected AWS Console URL or page pattern.
 - Target UI selector strategy.
-- Instruction text.
-- Why the step matters.
+- Translation keys for instruction text.
+- Translation keys for why the step matters.
 - Optional suggested values.
 - Completion criteria.
-- Recovery guidance.
+- Translation keys for recovery guidance.
+
+The guide engine should keep behavior separate from copy so the same S3/IAM flow can run in `en` and `pt-BR` without duplicating selectors or state logic.
+
+### Localization Layer
+
+Stores and resolves all user-facing strings for `en` and `pt-BR`. It provides:
+
+- Locale detection from browser settings.
+- Manual language selection.
+- Fallback to `en` for missing keys.
+- A typed or validated key structure so missing translations fail during development.
+- Formatting helpers for interpolated values such as bucket names, regions, and policy names.
 
 ### Extension Panel
 
@@ -108,12 +130,13 @@ Enforces rules around no credential capture, no network transmission, and no aut
 1. User opens the extension on an AWS Console page.
 2. User selects the curated S3/IAM guide.
 3. The guide engine activates the first step.
-4. The content script checks the current page and reports a local state result to the extension panel.
-5. The panel renders the instruction and available user actions.
-6. If the step has a highlight target, the content script applies a visible overlay around that AWS Console element.
-7. The user performs the AWS action manually or uses an assisted fill action.
-8. The extension validates simple state where feasible or asks the user to mark the step complete.
-9. The guide advances until the final checklist.
+4. The localization layer resolves user-facing copy for the active locale.
+5. The content script checks the current page and reports a local state result to the extension panel.
+6. The panel renders the instruction and available user actions.
+7. If the step has a highlight target, the content script applies a visible overlay around that AWS Console element.
+8. The user performs the AWS action manually or uses an assisted fill action.
+9. The extension validates simple state where feasible or asks the user to mark the step complete.
+10. The guide advances until the final checklist.
 
 No data leaves the browser in the MVP.
 
@@ -137,8 +160,11 @@ Initial tests should focus on reliability and trust:
 
 - Unit tests for guide step definitions and state transitions.
 - Unit tests for selector matching and fallback behavior where practical.
+- Unit tests for locale selection, fallback behavior, and missing translation detection.
+- Translation completeness checks for `en` and `pt-BR`.
 - Browser tests using local fixture pages that mimic key AWS Console screens.
 - Manual verification in Chrome against real AWS Console pages using a non-production AWS account.
+- Manual verification of the full S3/IAM guide in both English and Brazilian Portuguese.
 - Security checks confirming no external network calls are made by the extension during the guide.
 
 Because AWS Console markup can change, the implementation should avoid brittle selectors where possible and include clear failure states when a target cannot be found.
