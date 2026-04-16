@@ -82,7 +82,7 @@ it('renders an inline guide overlay anchored to the target', () => {
   expect(document.body).toHaveTextContent('Enter a globally unique bucket name.');
 });
 
-it('locks page scroll while the guide overlay is visible and restores it when cleared', () => {
+it('locks page scroll only while substeps are visible and restores it when cleared', () => {
   clearHighlight();
   document.body.innerHTML = '<button id="create-bucket">Create bucket</button>';
   const target = document.getElementById('create-bucket') as HTMLElement;
@@ -92,8 +92,23 @@ it('locks page scroll while the guide overlay is visible and restores it when cl
   const previousBodyOverflow = document.body.style.overflow;
 
   renderGuideOverlay(target, {
+    stepTitle: 'Choose the objective',
+    stepBody: 'This guide creates app access to S3 without opening the bucket publicly.',
+    progressLabel: 'Step 1 of 5',
+    primaryActionLabel: 'Next step',
+    secondaryActionLabel: 'Exit guide',
+    canAdvance: true,
+    onPrimaryAction: vi.fn(),
+    onSecondaryAction: vi.fn()
+  });
+
+  expect(document.documentElement.style.overflow).toBe(previousHtmlOverflow);
+  expect(document.body.style.overflow).toBe(previousBodyOverflow);
+
+  renderGuideOverlay(target, {
     stepTitle: 'Create the bucket',
     stepBody: 'Use a globally unique bucket name.',
+    substeps: ['Keep the default General purpose type.', 'Leave Global namespace selected.'],
     progressLabel: 'Step 2 of 5',
     primaryActionLabel: 'Next step',
     secondaryActionLabel: 'Exit guide',

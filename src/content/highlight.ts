@@ -167,7 +167,9 @@ export function renderGuideOverlay(target: HTMLElement | null, content: GuideOve
     document.body.appendChild(backdrop);
   }
 
-  lockPageScroll();
+  if (content.substeps && content.substeps.length > 0) {
+    lockPageScroll();
+  }
 
   const card = createLayer('', GUIDE_CARD_ATTRIBUTE);
   card.style.position = 'fixed';
