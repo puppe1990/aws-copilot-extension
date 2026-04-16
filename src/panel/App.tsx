@@ -4,24 +4,28 @@ import { renderIamPolicyTemplate, s3IamGuide } from '../guides/s3IamGuide';
 import type { AwsPage } from '../content/pageDetection';
 import { detectLocale, type Locale, t } from '../i18n';
 
+const DEBUG_MODE_STORAGE_KEY = 'awsCopilot.debugMode';
 const startStepId = 'objective';
 
-async function sendToActiveTab(payload: Record<string, unknown>): Promise<boolean> {
+async function sendMessageToActiveTab<T = unknown>(payload: Record<string, unknown>): Promise<T | null> {
   try {
     if (typeof chrome === 'undefined' || !chrome.tabs?.query || !chrome.tabs?.sendMessage) {
-      return false;
+      return null;
     }
 
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tab?.id === undefined) {
-      return false;
+      return null;
     }
 
-    await chrome.tabs.sendMessage(tab.id, payload);
-    return true;
+    return (await chrome.tabs.sendMessage(tab.id, payload)) as T;
   } catch {
-    return false;
+    return null;
   }
+}
+
+async function sendToActiveTab(payload: Record<string, unknown>): Promise<boolean> {
+  return (await sendMessageToActiveTab(payload)) !== null;
 }
 
 function closeLauncherPopup(): void {
@@ -76,9 +80,26 @@ export function App() {
   const [guideState, setGuideState] = useState(() => createGuideState(s3IamGuide));
   const [started, setStarted] = useState(false);
   const [detectedPage, setDetectedPage] = useState<AwsPage | null>(null);
+  const [debugMode, setDebugMode] = useState(false);
+  const [debugMarkdown, setDebugMarkdown] = useState('');
   const step = currentStep(s3IamGuide, guideState);
   const values = step.suggestedValues ?? {};
   const policyTemplate = step.policyTemplate ? renderIamPolicyTemplate(step.policyTemplate, values) : null;
+
+  useEffect(() => {
+    try {
+      if (typeof chrome === 'undefined' || !chrome.storage?.local?.get) {
+        return;
+      }
+
+      chrome.storage.local.get(DEBUG_MODE_STORAGE_KEY, (items) => {
+        const storageItems = items as Record<string, unknown> | undefined;
+        setDebugMode(Boolean(storageItems?.[DEBUG_MODE_STORAGE_KEY]));
+      });
+    } catch {
+      setDebugMode(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (!started) {
@@ -139,6 +160,52 @@ export function App() {
     await syncGuideOverlay(nextState.activeStepIndex);
   }
 
+  async function updateDebugMode(nextValue: boolean): Promise<void> {
+    setDebugMode(nextValue);
+
+    try {
+      if (typeof chrome === 'undefined' || !chrome.storage?.local?.set) {
+        return;
+      }
+
+      await chrome.storage.local.set({
+        [DEBUG_MODE_STORAGE_KEY]: nextValue
+      });
+    } catch {
+      // Ignore storage failures in the popup.
+    }
+  }
+
+  async function extractDebugMarkdown(): Promise<void> {
+    const response = await sendMessageToActiveTab<{ ok?: boolean; markdown?: string }>({
+      type: 'AWS_COPILOT_EXTRACT_DEBUG_CONTEXT'
+    });
+
+    setDebugMarkdown(response?.ok && response.markdown ? response.markdown : '');
+  }
+
+  async function copyDebugMarkdown(): Promise<void> {
+    if (!debugMarkdown) {
+      return;
+    }
+
+    await copyToClipboard(debugMarkdown);
+  }
+
+  function downloadDebugMarkdown(): void {
+    if (!debugMarkdown) {
+      return;
+    }
+
+    const blob = new Blob([debugMarkdown], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'debug.md';
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <main className="w-[380px] bg-[radial-gradient(circle_at_top,_rgba(255,153,0,0.18),_transparent_38%),linear-gradient(180deg,_#111827_0%,_#0b1220_100%)] p-4 text-slate-50">
       <section className="overflow-hidden rounded-[28px] border border-white/10 bg-slate-950/70 shadow-[0_24px_80px_rgba(15,23,42,0.55)] backdrop-blur">
@@ -162,6 +229,15 @@ export function App() {
               </select>
             </label>
           </div>
+          <label className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
+            <input
+              checked={debugMode}
+              className="h-4 w-4 rounded border-white/20 bg-white/5 text-amber-400 outline-none"
+              type="checkbox"
+              onChange={(event) => void updateDebugMode(event.target.checked)}
+            />
+            Debug mode
+          </label>
           <p className="max-w-[28ch] text-sm leading-6 text-slate-300">{t(locale, 'app.panelBody')}</p>
           <p className="mt-3 text-xs leading-5 text-slate-500">{t(locale, 'status.localOnly')}</p>
         </div>
@@ -253,6 +329,39 @@ export function App() {
             </button>
           </div>
         )}
+        {debugMode ? (
+          <section className="border-t border-white/10 px-5 py-5">
+            <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-white">Debug</h3>
+            <div className="mt-3 grid gap-3">
+              <button
+                type="button"
+                className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={() => void extractDebugMarkdown()}
+              >
+                Extract debug markdown
+              </button>
+              <button
+                type="button"
+                className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={!debugMarkdown}
+                onClick={() => void copyDebugMarkdown()}
+              >
+                Copy debug markdown
+              </button>
+              <button
+                type="button"
+                className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={!debugMarkdown}
+                onClick={() => downloadDebugMarkdown()}
+              >
+                Download debug.md
+              </button>
+              <pre className="max-h-56 overflow-auto rounded-2xl border border-white/10 bg-slate-950/80 p-4 text-xs leading-6 text-slate-200">
+                {debugMarkdown || 'No debug markdown yet.'}
+              </pre>
+            </div>
+          </section>
+        ) : null}
       </section>
     </main>
   );

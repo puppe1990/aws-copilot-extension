@@ -242,6 +242,272 @@ it('responds with an explicit error for sensitive highlight selectors', () => {
   });
 });
 
+it('extracts a concise debug context markdown payload', () => {
+  document.body.innerHTML = `
+    <h1>Amazon S3</h1>
+    <h2>Bucket overview</h2>
+    <button>Create bucket</button>
+    <a role="button">View details</a>
+    <input type="button" value="Refresh list" />
+    <input type="submit" value="Save changes" />
+    <input aria-label="Search" placeholder="Search" />
+    <label for="standard-name">Standard bucket name</label>
+    <input id="standard-name" />
+    <input name="bucketName" aria-label="Bucket name" />
+    <label for="secret-access-key">AWS Secret Access Key</label>
+    <input id="secret-access-key" type="password" />
+    <button>Reset password</button>
+  `;
+  const headings = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6'));
+  headings.forEach((heading) => {
+    vi.spyOn(heading, 'getBoundingClientRect').mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 100,
+      bottom: 24,
+      width: 100,
+      height: 24,
+      toJSON: () => ({})
+    } as DOMRect);
+  });
+  const actions = Array.from(document.querySelectorAll('button, a[role="button"]'));
+  actions.forEach((action) => {
+    vi.spyOn(action, 'getBoundingClientRect').mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 120,
+      bottom: 32,
+      width: 120,
+      height: 32,
+      toJSON: () => ({})
+    } as DOMRect);
+  });
+  const inputs = Array.from(document.querySelectorAll('input'));
+  inputs.forEach((input) => {
+    vi.spyOn(input, 'getBoundingClientRect').mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 160,
+      bottom: 32,
+      width: 160,
+      height: 32,
+      toJSON: () => ({})
+    } as DOMRect);
+  });
+  const secretButton = document.querySelector('button + button') as HTMLElement | null;
+  if (secretButton) {
+    vi.spyOn(secretButton, 'getBoundingClientRect').mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 120,
+      bottom: 32,
+      width: 120,
+      height: 32,
+      toJSON: () => ({})
+    } as DOMRect);
+  }
+
+  handleContentMessage(
+    {
+      type: 'AWS_COPILOT_START_GUIDE',
+      guideId: 's3-iam-app-access',
+      locale: 'en'
+    },
+    'https://s3.console.aws.amazon.com/s3/home?region=us-east-1',
+    vi.fn()
+  );
+
+  const sendResponse = vi.fn();
+  const handled = handleContentMessage(
+    {
+      type: 'AWS_COPILOT_EXTRACT_DEBUG_CONTEXT'
+    },
+    'https://s3.console.aws.amazon.com/s3/home?region=us-east-1',
+    sendResponse
+  );
+
+  expect(handled).toBe(true);
+  expect(sendResponse).toHaveBeenCalledWith(
+    expect.objectContaining({
+      ok: true,
+      markdown: expect.stringContaining('## Page')
+    })
+  );
+  expect(sendResponse.mock.calls[0]?.[0].markdown).toContain('URL: https://s3.console.aws.amazon.com/s3/home?region=us-east-1');
+  expect(sendResponse.mock.calls[0]?.[0].markdown).toContain('Document title:');
+  expect(sendResponse.mock.calls[0]?.[0].markdown).toContain('Detected page kind: s3BucketsList');
+  expect(sendResponse.mock.calls[0]?.[0].markdown).toContain('## Guide');
+  expect(sendResponse.mock.calls[0]?.[0].markdown).toContain('Current step: Create the bucket');
+  expect(sendResponse.mock.calls[0]?.[0].markdown).toContain('## Wizard diagnostics');
+  expect(sendResponse.mock.calls[0]?.[0].markdown).toContain('- stepId: bucket');
+  expect(sendResponse.mock.calls[0]?.[0].markdown).toContain('- isExpectedStepPage: true');
+  expect(sendResponse.mock.calls[0]?.[0].markdown).toContain('- isBucketLanding: false');
+  expect(sendResponse.mock.calls[0]?.[0].markdown).toContain('- shouldSearchS3: false');
+  expect(sendResponse.mock.calls[0]?.[0].markdown).toContain('- targetFound: true');
+  expect(sendResponse.mock.calls[0]?.[0].markdown).toContain('- substepsVisible: true');
+  expect(sendResponse.mock.calls[0]?.[0].markdown).toContain('## Selector summaries');
+  expect(sendResponse.mock.calls[0]?.[0].markdown).toContain('- highlightSelector: [data-testid="bucket-name"], input[name="bucketName"], input[aria-label*="Bucket"]');
+  expect(sendResponse.mock.calls[0]?.[0].markdown).not.toContain('- - highlightSelector:');
+  expect(sendResponse.mock.calls[0]?.[0].markdown).toContain('## Headings');
+  expect(sendResponse.mock.calls[0]?.[0].markdown).toContain('- Amazon S3');
+  expect(sendResponse.mock.calls[0]?.[0].markdown).toContain('## Actions');
+  expect(sendResponse.mock.calls[0]?.[0].markdown).toContain('- Create bucket');
+  expect(sendResponse.mock.calls[0]?.[0].markdown).toContain('- Refresh list');
+  expect(sendResponse.mock.calls[0]?.[0].markdown).toContain('- Save changes');
+  expect(sendResponse.mock.calls[0]?.[0].markdown).toContain('## Inputs');
+  expect(sendResponse.mock.calls[0]?.[0].markdown).toContain('- Search');
+  expect(sendResponse.mock.calls[0]?.[0].markdown).toContain('- Standard bucket name');
+  expect(sendResponse.mock.calls[0]?.[0].markdown).toContain('- Bucket name');
+  expect(sendResponse.mock.calls[0]?.[0].markdown).toContain('[redacted sensitive field]');
+  expect(sendResponse.mock.calls[0]?.[0].markdown).not.toContain('AWS Secret Access Key');
+  expect(sendResponse.mock.calls[0]?.[0].markdown).not.toContain('Reset password');
+  expect(sendResponse.mock.calls[0]?.[0].markdown).not.toContain('Next step');
+  expect(sendResponse.mock.calls[0]?.[0].markdown).not.toContain('Exit guide');
+});
+
+it('skips injected overlay content while extracting the debug context', () => {
+  document.body.innerHTML = `
+    <h1>Amazon S3</h1>
+    <button>Create bucket</button>
+  `;
+
+  handleContentMessage(
+    {
+      type: 'AWS_COPILOT_START_GUIDE',
+      guideId: 's3-iam-app-access',
+      locale: 'en'
+    },
+    'https://s3.console.aws.amazon.com/s3/home?region=us-east-1',
+    vi.fn()
+  );
+
+  const sendResponse = vi.fn();
+
+  handleContentMessage(
+    {
+      type: 'AWS_COPILOT_EXTRACT_DEBUG_CONTEXT'
+    },
+    'https://s3.console.aws.amazon.com/s3/home?region=us-east-1',
+    sendResponse
+  );
+
+  const markdown = sendResponse.mock.calls[0]?.[0].markdown as string;
+  expect(markdown).toContain('## Guide');
+  expect(markdown).toContain('Current step: Create the bucket');
+  expect(markdown).toContain('## Wizard diagnostics');
+  expect(markdown).toContain('- stepId: bucket');
+  expect(markdown).not.toContain('Next step');
+  expect(markdown).not.toContain('Exit guide');
+  expect(markdown).not.toContain('Use a globally unique bucket name');
+});
+
+it('derives wizard diagnostics from the requested href instead of stale active page state', () => {
+  document.body.innerHTML = `
+    <input aria-label="Search" placeholder="Search" />
+    <button>Create bucket</button>
+  `;
+
+  handleContentMessage(
+    {
+      type: 'AWS_COPILOT_START_GUIDE',
+      guideId: 's3-iam-app-access',
+      locale: 'en'
+    },
+    'https://s3.console.aws.amazon.com/s3/home?region=us-east-1',
+    vi.fn()
+  );
+
+  const sendResponse = vi.fn();
+
+  handleContentMessage(
+    {
+      type: 'AWS_COPILOT_EXTRACT_DEBUG_CONTEXT'
+    },
+    'https://us-east-1.console.aws.amazon.com/iam/home#/policies$new',
+    sendResponse
+  );
+
+  const markdown = sendResponse.mock.calls[0]?.[0].markdown as string;
+  expect(markdown).toContain('Detected page kind: iamCreatePolicy');
+  expect(markdown).toContain('- stepId: bucket');
+  expect(markdown).toContain('- isExpectedStepPage: false');
+  expect(markdown).toContain('- isBucketLanding: false');
+  expect(markdown).toContain('- shouldSearchS3: true');
+  expect(markdown).toContain('- targetFound: false');
+  expect(markdown).toContain('- substepsVisible: false');
+  expect(markdown).toContain('- searchSelector: input[aria-label="Search"], input[aria-label*="Search"], input[placeholder="Search"], input[type="search"], [role="searchbox"]');
+});
+
+it('does not clear an existing overlay while extracting debug context', () => {
+  document.body.innerHTML = `
+    <input name="bucketName" />
+    <input name="bucketName" />
+  `;
+
+  handleContentMessage(
+    {
+      type: 'AWS_COPILOT_START_GUIDE',
+      guideId: 's3-iam-app-access',
+      locale: 'en'
+    },
+    'https://s3.console.aws.amazon.com/s3/home?region=us-east-1',
+    vi.fn()
+  );
+
+  const existingOverlay = document.createElement('div');
+  existingOverlay.setAttribute('data-aws-copilot-highlight', 'true');
+  document.body.appendChild(existingOverlay);
+
+  const sendResponse = vi.fn();
+  handleContentMessage(
+    {
+      type: 'AWS_COPILOT_EXTRACT_DEBUG_CONTEXT'
+    },
+    'https://s3.console.aws.amazon.com/s3/home?region=us-east-1',
+    sendResponse
+  );
+
+  expect(sendResponse).toHaveBeenCalledWith(expect.objectContaining({ ok: true }));
+  expect(document.body.contains(existingOverlay)).toBe(true);
+});
+
+it('returns an explicit error when debug extraction fails', () => {
+  const sendResponse = vi.fn();
+  const titleDescriptor = Object.getOwnPropertyDescriptor(Document.prototype, 'title');
+  Object.defineProperty(document, 'title', {
+    configurable: true,
+    get() {
+      throw new Error('boom');
+    }
+  });
+
+  const handled = handleContentMessage(
+    {
+      type: 'AWS_COPILOT_EXTRACT_DEBUG_CONTEXT'
+    },
+    'https://console.aws.amazon.com/',
+    sendResponse
+  );
+
+  expect(handled).toBe(true);
+  expect(sendResponse).toHaveBeenCalledWith({
+    ok: false,
+    error: 'boom'
+  });
+
+  if (titleDescriptor) {
+    Object.defineProperty(document, 'title', titleDescriptor);
+  }
+});
+
 it('starts the inline guide by searching S3 from the AWS Console home', () => {
   document.body.innerHTML = '<input aria-label="Search" placeholder="Search" />';
   const sendResponse = vi.fn();

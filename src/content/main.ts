@@ -1,6 +1,6 @@
 import { clearHighlight, highlightSelector, renderGuideOverlay, resolveHighlightTarget } from './highlight';
 import { detectAwsPage } from './pageDetection';
-import { assertSafeElement, assertSafeSelector } from '../safety/safetyRules';
+import { assertSafeElement, assertSafeSelector, isSensitiveSelector } from '../safety/safetyRules';
 
 console.info('[AWS Copilot] content script loaded', detectAwsPage(window.location.href));
 
@@ -301,12 +301,12 @@ function detectLocaleFromNavigator(): Locale {
   return browserLanguages.some((language) => language.toLowerCase().startsWith('pt')) ? 'pt-BR' : 'en';
 }
 
-function currentAwsPage() {
-  return detectAwsPage(activeHref);
+function currentAwsPage(href = activeHref) {
+  return detectAwsPage(href);
 }
 
 function stepIndexForHref(href: string): number {
-  const page = detectAwsPage(href);
+  const page = currentAwsPage(href);
 
   if (page.kind === 's3BucketSettings') {
     return 2;
@@ -323,8 +323,7 @@ function completedStepIdsForIndex(activeStepIndex: number): GuideStepId[] {
   return steps.slice(0, activeStepIndex).map((step) => step.id);
 }
 
-function matchesExpectedPage(expectedPage: ContentGuideStep['expectedPage']): boolean {
-  const page = currentAwsPage();
+function matchesExpectedPage(expectedPage: ContentGuideStep['expectedPage'], page = currentAwsPage()): boolean {
 
   if (expectedPage === 'anyAws') {
     return page.kind !== 'notAws';
@@ -333,18 +332,17 @@ function matchesExpectedPage(expectedPage: ContentGuideStep['expectedPage']): bo
   return page.kind === expectedPage;
 }
 
-function matchesExpectedStepPage(step: ContentGuideStep): boolean {
-  const page = currentAwsPage();
+function matchesExpectedStepPage(step: ContentGuideStep, page = currentAwsPage()): boolean {
 
   if (step.id === 'security' && page.kind === 's3CreateBucket') {
     return true;
   }
 
-  return matchesExpectedPage(step.expectedPage);
+  return matchesExpectedPage(step.expectedPage, page);
 }
 
-function isBucketStepLandingPage(step: ContentGuideStep): boolean {
-  return step.id === 'bucket' && currentAwsPage().kind === 's3BucketsList';
+function isBucketStepLandingPage(step: ContentGuideStep, page = currentAwsPage()): boolean {
+  return step.id === 'bucket' && page.kind === 's3BucketsList';
 }
 
 function resolveCreateBucketButtonTarget(): HTMLElement | null {
@@ -514,6 +512,255 @@ function currentStep(): ContentGuideStep | null {
   return steps[activeGuideState.activeStepIndex] ?? null;
 }
 
+function isInsideInjectedOverlay(element: HTMLElement): boolean {
+  return Boolean(element.closest('[data-aws-copilot-guide-card], [data-aws-copilot-highlight]'));
+}
+
+function getVisibleElements(selectors: string): HTMLElement[] {
+  try {
+    return Array.from(document.querySelectorAll<HTMLElement>(selectors)).filter(
+      (element) => isVisibleEnough(element) && !isInsideInjectedOverlay(element)
+    );
+  } catch {
+    return [];
+  }
+}
+
+function describeNodeText(element: HTMLElement): string {
+  return normalizedText(element);
+}
+
+function describeActionElement(element: HTMLElement): string {
+  let label = describeNodeText(element);
+
+  if (element instanceof HTMLInputElement) {
+    const type = (element.getAttribute('type') ?? '').trim().toLowerCase();
+    if (type === 'button' || type === 'submit' || type === 'reset') {
+      label = element.value.trim() || normalizedText(element) || type;
+    }
+  }
+
+  if (isSensitiveSelector(label) || isSensitiveSelector(element.getAttribute('name') ?? '') || isSensitiveSelector(element.id)) {
+    return '[redacted sensitive field]';
+  }
+
+  return label;
+}
+
+function describeInputElement(element: HTMLElement): string {
+  const labelledBy = element.getAttribute('aria-labelledby');
+  const labelledText =
+    labelledBy
+      ?.split(/\s+/u)
+      .map((id) => document.getElementById(id)?.textContent ?? '')
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim() ?? '';
+  const labelText =
+    (element instanceof HTMLInputElement || element instanceof HTMLSelectElement || element instanceof HTMLTextAreaElement
+      ? Array.from(element.labels ?? [])
+          .map((label) => label.textContent ?? '')
+          .join(' ')
+      : '')
+      .replace(/\s+/g, ' ')
+      .trim() || element.closest('label')?.textContent?.replace(/\s+/g, ' ').trim() || '';
+  const ariaLabel = element.getAttribute('aria-label')?.trim() ?? '';
+  const placeholder = element.getAttribute('placeholder')?.trim() ?? '';
+  const name = element.getAttribute('name')?.trim() ?? '';
+  const type = element.getAttribute('type')?.trim() ?? element.tagName.toLowerCase();
+  const label = labelledText || labelText || ariaLabel || placeholder || name || type;
+
+  if (
+    isSensitiveSelector(label) ||
+    isSensitiveSelector(labelledText) ||
+    isSensitiveSelector(labelText) ||
+    isSensitiveSelector(ariaLabel) ||
+    isSensitiveSelector(placeholder) ||
+    isSensitiveSelector(name) ||
+    isSensitiveSelector(type) ||
+    isSensitiveSelector(element.id) ||
+    isSensitiveSelector(element.getAttribute('autocomplete') ?? '') ||
+    isSensitiveSelector(element.getAttribute('type') ?? '')
+  ) {
+    return '[redacted sensitive field]';
+  }
+
+  return label;
+}
+
+function formatMarkdownList(items: string[]): string {
+  return items.length > 0 ? items.map((item) => `- ${item}`).join('\n') : '- None visible';
+}
+
+function resolveHighlightTargetForDiagnostics(selector: string): HTMLElement | null {
+  try {
+    assertSafeSelector(selector);
+  } catch {
+    return null;
+  }
+
+  let targets: NodeListOf<Element>;
+  try {
+    targets = document.querySelectorAll(selector);
+  } catch {
+    return null;
+  }
+
+  if (targets.length !== 1) {
+    return null;
+  }
+
+  const target = targets[0];
+  if (!(target instanceof HTMLElement)) {
+    return null;
+  }
+
+  try {
+    assertSafeElement(target);
+  } catch {
+    return null;
+  }
+
+  return target;
+}
+
+type GuideRenderContext = {
+  page: ReturnType<typeof detectAwsPage>;
+  step: ContentGuideStep | null;
+  stepIdentifier: string;
+  bucketFormTarget: HTMLElement | null;
+  isBucketCreateForm: boolean;
+  isBucketLanding: boolean;
+  isExpectedStepPage: boolean;
+  searchTarget: HTMLElement | null;
+  s3ServiceTarget: HTMLElement | null;
+  createBucketTarget: HTMLElement | null;
+  target: HTMLElement | null;
+  shouldSearchS3: boolean;
+  keepFloatingWithoutBackdrop: boolean;
+  substepsVisible: boolean;
+  selectorSummaries: string[];
+};
+
+function summarizeSelectorSummaries(context: GuideRenderContext): string[] {
+  if (!context.step) {
+    return ['None'];
+  }
+
+  const summaries: string[] = [];
+
+  if (context.step.highlightSelector) {
+    summaries.push(`highlightSelector: ${isSensitiveSelector(context.step.highlightSelector) ? '[redacted sensitive field]' : context.step.highlightSelector}`);
+  }
+
+  if (context.step.id === 'bucket') {
+    summaries.push(`bucketFormSelectors: ${bucketNameFieldSelectors.join(' | ')}`);
+  }
+
+  if (context.shouldSearchS3) {
+    summaries.push(`searchSelector: ${awsSearchSelector}`);
+  }
+
+  return summaries.length > 0 ? summaries : ['None'];
+}
+
+function deriveGuideRenderContext(href: string, options?: { performSearchSideEffects?: boolean }): GuideRenderContext {
+  const page = detectAwsPage(href);
+  const step = currentStep();
+  const bucketFormTarget = step?.id === 'bucket' ? resolveBucketFormTarget() : null;
+  const isBucketCreateForm = Boolean(bucketFormTarget);
+  const isBucketLanding = Boolean(step?.id === 'bucket' && !isBucketCreateForm && page.kind === 's3BucketsList');
+  const isExpectedStepPage = Boolean(step && (matchesExpectedStepPage(step, page) || isBucketCreateForm));
+  const searchTarget = !isExpectedStepPage && !isBucketLanding && page.kind !== 'notAws' ? resolveAwsSearchTarget() : null;
+  const shouldSearchS3 = Boolean(searchTarget);
+
+  if (shouldSearchS3 && options?.performSearchSideEffects) {
+    putS3InSearch(searchTarget);
+  }
+
+  const s3ServiceTarget = searchTarget ? resolveS3ServiceResultTarget() : null;
+  const createBucketTarget = isBucketLanding ? resolveCreateBucketButtonTarget() : null;
+  const target =
+    bucketFormTarget ??
+    createBucketTarget ??
+    (step?.highlightSelector && isExpectedStepPage
+      ? options?.performSearchSideEffects
+        ? resolveHighlightTarget(step.highlightSelector)
+        : resolveHighlightTargetForDiagnostics(step.highlightSelector)
+      : s3ServiceTarget);
+  const keepFloatingWithoutBackdrop = isExpectedStepPage && !target;
+  const substepsVisible = Boolean(step && isExpectedStepPage && step.substeps?.[activeLocale]?.length);
+  const context: GuideRenderContext = {
+    page,
+    step,
+    stepIdentifier: step?.id ?? 'none',
+    bucketFormTarget,
+    isBucketCreateForm,
+    isBucketLanding,
+    isExpectedStepPage,
+    searchTarget,
+    s3ServiceTarget,
+    createBucketTarget,
+    target,
+    shouldSearchS3,
+    keepFloatingWithoutBackdrop,
+    substepsVisible,
+    selectorSummaries: []
+  };
+
+  context.selectorSummaries = summarizeSelectorSummaries(context);
+  return context;
+}
+
+function buildDebugContextMarkdown(href: string): string {
+  const context = deriveGuideRenderContext(href);
+  const headingItems = getVisibleElements('h1, h2, h3, h4, h5, h6').map(describeNodeText).filter(Boolean).slice(0, 8);
+  const actionItems = getVisibleElements('button, a[role="button"], [role="button"], input[type="button"], input[type="submit"]').map(
+    describeActionElement
+  ).filter(Boolean).slice(0, 8);
+  const inputItems = getVisibleElements('input:not([type="button"]):not([type="submit"]):not([type="reset"]), textarea, select')
+    .map(describeInputElement)
+    .filter(Boolean)
+    .slice(0, 8);
+  const guideLines = activeGuideState
+    ? [
+        `- Active guide: ${guideId}`,
+        `- Current step: ${context.step ? context.step.title[activeLocale] : 'Unknown'}`,
+        `- Progress: Step ${activeGuideState.activeStepIndex + 1} of ${steps.length}`
+      ]
+    : ['- No active guide'];
+
+  return [
+    '## Page',
+    `- URL: ${href}`,
+    `- Document title: ${document.title || '(empty)'}`,
+    `- Detected page kind: ${context.page.kind}`,
+    '',
+    '## Guide',
+    ...guideLines,
+    '',
+    '## Wizard diagnostics',
+    `- stepId: ${context.stepIdentifier}`,
+    `- isExpectedStepPage: ${String(context.isExpectedStepPage)}`,
+    `- isBucketLanding: ${String(context.isBucketLanding)}`,
+    `- shouldSearchS3: ${String(context.shouldSearchS3)}`,
+    `- targetFound: ${String(Boolean(context.target))}`,
+    `- substepsVisible: ${String(context.substepsVisible)}`,
+    '',
+    '## Selector summaries',
+    formatMarkdownList(context.selectorSummaries),
+    '',
+    '## Headings',
+    formatMarkdownList(headingItems),
+    '',
+    '## Actions',
+    formatMarkdownList(actionItems),
+    '',
+    '## Inputs',
+    formatMarkdownList(inputItems)
+  ].join('\n');
+}
+
 function goNext(state: GuideState, stepId: GuideStepId): GuideState {
   const completedStepIds = state.completedStepIds.includes(stepId) ? state.completedStepIds : [...state.completedStepIds, stepId];
   return {
@@ -523,32 +770,23 @@ function goNext(state: GuideState, stepId: GuideStepId): GuideState {
 }
 
 function renderCurrentGuideStep(): void {
-  const step = currentStep();
+  const context = deriveGuideRenderContext(activeHref, { performSearchSideEffects: true });
+  const step = context.step;
   if (!step || !activeGuideState) {
     clearHighlight();
     return;
   }
 
-  const page = currentAwsPage();
-  const canAdvance = matchesExpectedStepPage(step);
-  const bucketFormTarget = step.id === 'bucket' ? resolveBucketFormTarget() : null;
-  const isBucketCreateForm = Boolean(bucketFormTarget);
-  const isBucketLanding = !isBucketCreateForm && isBucketStepLandingPage(step);
-  const isExpectedStepPage = canAdvance || isBucketCreateForm;
-  const searchTarget = !isExpectedStepPage && !isBucketLanding && page.kind !== 'notAws' ? resolveAwsSearchTarget() : null;
-
-  if (searchTarget) {
-    putS3InSearch(searchTarget);
-  }
-
-  const s3ServiceTarget = searchTarget ? resolveS3ServiceResultTarget() : null;
-  const createBucketTarget = isBucketLanding ? resolveCreateBucketButtonTarget() : null;
-  const target =
-    bucketFormTarget ??
-    createBucketTarget ??
-    (step.highlightSelector && isExpectedStepPage ? resolveHighlightTarget(step.highlightSelector) : s3ServiceTarget);
-  const shouldSearchS3 = Boolean(searchTarget);
-  const keepFloatingWithoutBackdrop = isExpectedStepPage && !target;
+  const page = context.page;
+  const bucketFormTarget = context.bucketFormTarget;
+  const isBucketLanding = context.isBucketLanding;
+  const isExpectedStepPage = context.isExpectedStepPage;
+  const searchTarget = context.searchTarget;
+  const s3ServiceTarget = context.s3ServiceTarget;
+  const createBucketTarget = context.createBucketTarget;
+  const target = context.target;
+  const shouldSearchS3 = context.shouldSearchS3;
+  const keepFloatingWithoutBackdrop = context.keepFloatingWithoutBackdrop;
 
   if (shouldSearchS3 && !s3ServiceTarget) {
     watchForS3ServiceResult();
@@ -711,6 +949,16 @@ export function handleContentMessage(
 
   if (contentMessage?.type === 'AWS_COPILOT_DETECT_PAGE') {
     sendResponse({ ok: true, page: detectAwsPage(href) });
+    return true;
+  }
+
+  if (contentMessage?.type === 'AWS_COPILOT_EXTRACT_DEBUG_CONTEXT') {
+    try {
+      sendResponse({ ok: true, markdown: buildDebugContextMarkdown(href) });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to extract debug context';
+      sendResponse({ ok: false, error: errorMessage });
+    }
     return true;
   }
 
