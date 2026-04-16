@@ -17,6 +17,7 @@ export const ptBR: TranslationKeyMap = {
   'guide.s3Iam.stepReview.title': 'Revise o resultado',
   'guide.s3Iam.stepReview.body': 'Confirme que o bucket está privado e que a política IAM referencia apenas o bucket esperado.',
   'action.copy': 'Copiar sugestão',
+  'action.copyPolicyJson': 'Copiar JSON da política',
   'action.fill': 'Preencher campo',
   'action.highlightField': 'Destacar campo',
   'action.done': 'Marcar como concluído',

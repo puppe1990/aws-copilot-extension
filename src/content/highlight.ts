@@ -1,4 +1,4 @@
-import { assertSafeSelector } from '../safety/safetyRules';
+import { assertSafeElement, assertSafeSelector } from '../safety/safetyRules';
 
 const HIGHLIGHT_ATTRIBUTE = 'data-aws-copilot-highlight';
 
@@ -27,18 +27,32 @@ export function highlightElement(target: HTMLElement): void {
 export function highlightSelector(selector: string): boolean {
   assertSafeSelector(selector);
 
-  let target: Element | null;
+  let targets: NodeListOf<Element>;
 
   try {
-    target = document.querySelector(selector);
+    targets = document.querySelectorAll(selector);
   } catch {
     clearHighlight();
     return false;
   }
 
+  if (targets.length !== 1) {
+    clearHighlight();
+    return false;
+  }
+
+  const target = targets[0];
+
   if (!(target instanceof HTMLElement)) {
     clearHighlight();
     return false;
+  }
+
+  try {
+    assertSafeElement(target);
+  } catch (error) {
+    clearHighlight();
+    throw error;
   }
 
   highlightElement(target);

@@ -67,3 +67,66 @@ it('does not throw when the highlight message is rejected', async () => {
     selector: '[data-testid="bucket-name"], input[name="bucketName"], input[aria-label*="Bucket"]'
   });
 });
+
+it('shows recovery text and disables highlight outside AWS', async () => {
+  const sendMessage = vi.fn().mockResolvedValue({
+    ok: true,
+    page: { kind: 'notAws' }
+  });
+  vi.stubGlobal('chrome', {
+    tabs: {
+      query: vi.fn().mockResolvedValue([{ id: 42 }]),
+      sendMessage
+    }
+  });
+
+  render(<App />);
+  await userEvent.click(screen.getByRole('button', { name: 'Mark done' }));
+
+  expect(await screen.findByText('Open the AWS Console to use this guide.')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Highlight field' })).toBeDisabled();
+
+  await userEvent.click(screen.getByRole('button', { name: 'Mark done' }));
+  expect(screen.getByRole('heading', { name: 'Keep public access blocked' })).toBeInTheDocument();
+});
+
+it('shows wrong-page recovery text when the detected page does not match the step', async () => {
+  const sendMessage = vi.fn().mockResolvedValue({
+    ok: true,
+    page: { kind: 's3BucketSettings' }
+  });
+  vi.stubGlobal('chrome', {
+    tabs: {
+      query: vi.fn().mockResolvedValue([{ id: 42 }]),
+      sendMessage
+    }
+  });
+
+  render(<App />);
+  await userEvent.click(screen.getByRole('button', { name: 'Mark done' }));
+
+  expect(await screen.findByText('This step needs a different AWS Console page.')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Highlight field' })).toBeDisabled();
+});
+
+it('renders an IAM policy template and wires copy to clipboard', async () => {
+  const writeText = vi.fn().mockResolvedValue(undefined);
+  Object.assign(navigator, {
+    clipboard: {
+      writeText
+    }
+  });
+
+  render(<App />);
+
+  await userEvent.click(screen.getByRole('button', { name: 'Mark done' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Mark done' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Mark done' }));
+
+  expect(screen.getByText(/"s3:GetObject"/)).toBeInTheDocument();
+  expect(screen.getByText(/"arn:aws:s3:::my-app-uploads-prod\/\*"/)).toBeInTheDocument();
+
+  await userEvent.click(screen.getByRole('button', { name: 'Copy policy JSON' }));
+
+  expect(writeText).toHaveBeenCalledWith(expect.stringContaining('"s3:DeleteObject"'));
+});

@@ -17,6 +17,25 @@ export function assertSafeSelector(selector: string): void {
   }
 }
 
+export function isSensitiveElement(element: HTMLElement): boolean {
+  const elementValues = [
+    element.getAttribute('type'),
+    element.getAttribute('name'),
+    element.id,
+    element.getAttribute('aria-label'),
+    element.getAttribute('autocomplete'),
+    element.textContent
+  ];
+
+  return elementValues.some((value) => value !== null && isSensitiveSelector(value));
+}
+
+export function assertSafeElement(element: HTMLElement): void {
+  if (isSensitiveElement(element)) {
+    throw new Error('Refusing to target sensitive AWS fields');
+  }
+}
+
 export function isExternalUrlAllowed(_url: string): boolean {
   return false;
 }

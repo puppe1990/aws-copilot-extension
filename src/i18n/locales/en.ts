@@ -15,6 +15,7 @@ export const en = {
   'guide.s3Iam.stepReview.title': 'Review the result',
   'guide.s3Iam.stepReview.body': 'Confirm the bucket is private and the IAM policy references only the intended bucket.',
   'action.copy': 'Copy suggestion',
+  'action.copyPolicyJson': 'Copy policy JSON',
   'action.fill': 'Fill field',
   'action.highlightField': 'Highlight field',
   'action.done': 'Mark done',

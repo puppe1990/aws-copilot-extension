@@ -25,3 +25,14 @@ it('tracks completed step ids', () => {
   const state = markDone(createGuideState(s3IamGuide), 'bucket');
   expect(state.completedStepIds).toContain('bucket');
 });
+
+it('uses scoped selectors for safety-sensitive guide steps', () => {
+  const securityStep = s3IamGuide.steps.find((step) => step.id === 'security');
+  const iamStep = s3IamGuide.steps.find((step) => step.id === 'iamPolicy');
+
+  expect(securityStep?.highlightSelector).not.toContain('input[type="checkbox"]');
+  expect(securityStep?.highlightSelector).toContain('block-public');
+  expect(iamStep?.highlightSelector).not.toContain('textarea');
+  expect(iamStep?.highlightSelector).not.toContain('[role="textbox"]');
+  expect(iamStep?.highlightSelector).toContain('Policy JSON');
+});
