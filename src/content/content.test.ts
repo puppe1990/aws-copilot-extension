@@ -1,3 +1,4 @@
+import { handleContentMessage } from './main';
 import { clearHighlight, highlightElement, highlightSelector } from './highlight';
 import { detectAwsPage } from './pageDetection';
 
@@ -36,4 +37,24 @@ it("returns false for malformed highlight selectors", () => {
   expect(() => highlightSelector('[')).not.toThrow();
   expect(highlightSelector('[')).toBe(false);
   expect(document.querySelector('[data-aws-copilot-highlight]')).not.toBeInTheDocument();
+});
+
+it('responds with an explicit error for sensitive highlight selectors', () => {
+  const sendResponse = vi.fn();
+
+  expect(() =>
+    handleContentMessage(
+      {
+        type: 'AWS_COPILOT_HIGHLIGHT',
+        selector: 'input[type="password"]'
+      },
+      'https://console.aws.amazon.com/iam/home',
+      sendResponse
+    )
+  ).not.toThrow();
+
+  expect(sendResponse).toHaveBeenCalledWith({
+    ok: false,
+    error: 'Refusing to target sensitive AWS fields'
+  });
 });
