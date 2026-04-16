@@ -7,18 +7,112 @@ import { detectLocale, type Locale, t } from '../i18n';
 const DEBUG_MODE_STORAGE_KEY = 'awsCopilot.debugMode';
 const startStepId = 'objective';
 
-async function sendMessageToActiveTab<T = unknown>(payload: Record<string, unknown>): Promise<T | null> {
+function extractDebugContextFromPage(): string {
+  const normalizeText = (value: string | null | undefined) => value?.replace(/\s+/g, ' ').trim() ?? '';
+  const isVisibleEnough = (element: Element) => {
+    if (!(element instanceof HTMLElement)) {
+      return false;
+    }
+
+    const rect = element.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
+  };
+  const list = (items: string[]) => (items.length > 0 ? items.map((item) => `- ${item}`).join('\n') : '- None visible');
+  const headings = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6'))
+    .filter(isVisibleEnough)
+    .map((element) => normalizeText(element.textContent))
+    .filter(Boolean)
+    .slice(0, 8);
+  const actions = Array.from(
+    document.querySelectorAll('button, a[role="button"], [role="button"], input[type="button"], input[type="submit"]')
+  )
+    .filter(isVisibleEnough)
+    .map((element) =>
+      element instanceof HTMLInputElement ? normalizeText(element.value) || normalizeText(element.getAttribute('aria-label')) : normalizeText(element.textContent)
+    )
+    .filter(Boolean)
+    .slice(0, 8);
+  const inputs = Array.from(document.querySelectorAll('input, textarea, select'))
+    .filter(isVisibleEnough)
+    .map((element) => {
+      if (!(element instanceof HTMLElement)) {
+        return '';
+      }
+
+      return normalizeText(
+        element.getAttribute('aria-label') ??
+          element.getAttribute('placeholder') ??
+          element.getAttribute('name') ??
+          element.getAttribute('id') ??
+          element.tagName.toLowerCase()
+      );
+    })
+    .filter(Boolean)
+    .slice(0, 8);
+
+  return [
+    '## Page',
+    `- URL: ${window.location.href}`,
+    `- Document title: ${document.title || '(empty)'}`,
+    '',
+    '## Headings',
+    list(headings),
+    '',
+    '## Actions',
+    list(actions),
+    '',
+    '## Inputs',
+    list(inputs)
+  ].join('\n');
+}
+
+async function getActiveTabId(): Promise<number | null> {
   try {
-    if (typeof chrome === 'undefined' || !chrome.tabs?.query || !chrome.tabs?.sendMessage) {
+    if (typeof chrome === 'undefined' || !chrome.tabs?.query) {
       return null;
     }
 
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab?.id === undefined) {
+    return typeof tab?.id === 'number' ? tab.id : null;
+  } catch {
+    return null;
+  }
+}
+
+async function sendMessageToActiveTab<T = unknown>(payload: Record<string, unknown>): Promise<T | null> {
+  try {
+    if (typeof chrome === 'undefined' || !chrome.tabs?.sendMessage) {
       return null;
     }
 
-    return (await chrome.tabs.sendMessage(tab.id, payload)) as T;
+    const tabId = await getActiveTabId();
+    if (tabId === null) {
+      return null;
+    }
+
+    return (await chrome.tabs.sendMessage(tabId, payload)) as T;
+  } catch {
+    return null;
+  }
+}
+
+async function extractDebugMarkdownViaScripting(): Promise<string | null> {
+  try {
+    if (typeof chrome === 'undefined' || !chrome.scripting?.executeScript) {
+      return null;
+    }
+
+    const tabId = await getActiveTabId();
+    if (tabId === null) {
+      return null;
+    }
+
+    const [result] = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: extractDebugContextFromPage
+    });
+
+    return typeof result?.result === 'string' && result.result ? result.result : null;
   } catch {
     return null;
   }
@@ -82,6 +176,7 @@ export function App() {
   const [detectedPage, setDetectedPage] = useState<AwsPage | null>(null);
   const [debugMode, setDebugMode] = useState(false);
   const [debugMarkdown, setDebugMarkdown] = useState('');
+  const [debugError, setDebugError] = useState('');
   const step = currentStep(s3IamGuide, guideState);
   const values = step.suggestedValues ?? {};
   const policyTemplate = step.policyTemplate ? renderIamPolicyTemplate(step.policyTemplate, values) : null;
@@ -177,11 +272,25 @@ export function App() {
   }
 
   async function extractDebugMarkdown(): Promise<void> {
+    setDebugError('');
+
     const response = await sendMessageToActiveTab<{ ok?: boolean; markdown?: string }>({
       type: 'AWS_COPILOT_EXTRACT_DEBUG_CONTEXT'
     });
 
-    setDebugMarkdown(response?.ok && response.markdown ? response.markdown : '');
+    if (response?.ok && response.markdown) {
+      setDebugMarkdown(response.markdown);
+      return;
+    }
+
+    const fallbackMarkdown = await extractDebugMarkdownViaScripting();
+    if (fallbackMarkdown) {
+      setDebugMarkdown(fallbackMarkdown);
+      return;
+    }
+
+    setDebugMarkdown('');
+    setDebugError('Could not extract debug markdown from the active page.');
   }
 
   async function copyDebugMarkdown(): Promise<void> {
@@ -356,6 +465,9 @@ export function App() {
               >
                 Download debug.md
               </button>
+              {debugError ? (
+                <p className="rounded-2xl border border-rose-400/25 bg-rose-500/10 px-3 py-2 text-sm text-rose-100">{debugError}</p>
+              ) : null}
               <pre className="max-h-56 overflow-auto rounded-2xl border border-white/10 bg-slate-950/80 p-4 text-xs leading-6 text-slate-200">
                 {debugMarkdown || 'No debug markdown yet.'}
               </pre>

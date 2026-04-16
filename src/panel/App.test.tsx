@@ -267,3 +267,41 @@ it('extracts debug markdown and enables copy and download actions', async () => 
   expect(anchorClick).toHaveBeenCalled();
   expect(revokeObjectURL).toHaveBeenCalledWith('blob:debug');
 });
+
+it('falls back to page script extraction when the content script does not respond', async () => {
+  const sendMessage = vi.fn().mockRejectedValue(new Error('Could not establish connection. Receiving end does not exist.'));
+  const executeScript = vi.fn().mockResolvedValue([
+    {
+      result: '## Page\n- URL: https://s3.console.aws.amazon.com/s3/home'
+    }
+  ]);
+
+  vi.stubGlobal('chrome', {
+    storage: {
+      local: {
+        get: vi.fn((_keys: string[] | string, callback: (value: unknown) => void) => {
+          callback({ 'awsCopilot.debugMode': true });
+        }),
+        set: vi.fn()
+      }
+    },
+    tabs: {
+      query: vi.fn().mockResolvedValue([{ id: 42 }]),
+      sendMessage
+    },
+    scripting: {
+      executeScript
+    }
+  });
+
+  render(<App />);
+
+  await userEvent.click(await screen.findByRole('button', { name: 'Extract debug markdown' }));
+
+  expect(sendMessage).toHaveBeenCalledWith(42, {
+    type: 'AWS_COPILOT_EXTRACT_DEBUG_CONTEXT'
+  });
+  expect(executeScript).toHaveBeenCalledTimes(1);
+  expect(await screen.findByText(/## Page/)).toBeInTheDocument();
+  expect(screen.queryByText(/Could not extract debug markdown/)).not.toBeInTheDocument();
+});
