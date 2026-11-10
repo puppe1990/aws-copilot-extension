@@ -43,11 +43,22 @@ Install Playwright browser binaries on a fresh machine if needed:
 npx playwright install chromium
 ```
 
-Run checks:
+Quality:
+
+```bash
+npm run format:check
+npm run lint
+npm test
+npm run ci            # prettier + lint + test
+```
+
+Full local gate (CI plus typecheck, build and Playwright):
 
 ```bash
 npm run check
 ```
+
+Pre-commit (Husky + lint-staged) runs `eslint --fix` + Prettier on staged files, then `npm test`. Hooks install with `npm install`.
 
 Build the extension:
 
