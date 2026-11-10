@@ -1,7 +1,24 @@
+import { faker } from '@faker-js/faker'
 import { detectAwsPage } from './pageDetection'
+
+const AWS_CONSOLE_REGIONS = [
+  'us-east-1',
+  'us-east-2',
+  'us-west-2',
+  'sa-east-1',
+  'eu-west-1',
+  'ap-northeast-1',
+] as const
 
 it('detects non-AWS pages', () => {
   expect(detectAwsPage('https://example.com')).toEqual({ kind: 'notAws' })
+})
+
+it('detects AWS Console Home as consoleHome', () => {
+  const region = faker.helpers.arrayElement(AWS_CONSOLE_REGIONS)
+  expect(
+    detectAwsPage(`https://${region}.console.aws.amazon.com/console/home?region=${region}`),
+  ).toEqual({ kind: 'consoleHome' })
 })
 
 it('detects AWS S3 pages', () => {

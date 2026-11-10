@@ -1,5 +1,12 @@
 import { assertSafeElement, assertSafeSelector } from '../safety/safetyRules'
-import { AWS_SEARCH_SELECTOR, BUCKET_NAME_FIELD_SELECTORS } from './contentGuideCatalog'
+import {
+  AWS_COOKIE_ACCEPT_SELECTOR,
+  AWS_COOKIE_BANNER_SELECTOR,
+  AWS_SEARCH_RESULTS_SELECTOR,
+  AWS_SEARCH_SELECTOR,
+  AWS_UNIFIED_SEARCH_CONTAINER_SELECTOR,
+  BUCKET_NAME_FIELD_SELECTORS,
+} from './contentGuideCatalog'
 
 let s3ResultObserver: MutationObserver | null = null
 let s3ResultObserverTimeout: number | null = null
@@ -59,42 +66,39 @@ export function resolveBucketFormTarget(): HTMLElement | null {
   return null
 }
 
-export function resolveAwsSearchTarget(): HTMLInputElement | HTMLElement | null {
-  assertSafeSelector(AWS_SEARCH_SELECTOR)
+function firstMatchingElement(selector: string, root: ParentNode = document): HTMLElement | null {
+  assertSafeSelector(selector)
 
-  let targets: NodeListOf<Element>
+  let matches: NodeListOf<Element>
   try {
-    targets = document.querySelectorAll(AWS_SEARCH_SELECTOR)
+    matches = root.querySelectorAll(selector)
   } catch {
     return null
   }
 
-  for (const target of targets) {
-    if (!(target instanceof HTMLElement)) {
+  for (const match of matches) {
+    if (!(match instanceof HTMLElement)) {
       continue
     }
-    assertSafeElement(target)
-    const rect = target.getBoundingClientRect()
-    const isVisible = rect.width > 0 && rect.height > 0
-    if (isVisible || targets.length === 1) {
-      return target
+    assertSafeElement(match)
+    if (isVisibleEnough(match) || matches.length === 1) {
+      return match
     }
   }
 
   return null
 }
 
-export function putS3InSearch(target: HTMLElement | null): void {
-  if (!(target instanceof HTMLInputElement)) {
-    target?.focus()
-    return
-  }
+function isSearchField(element: HTMLElement): element is HTMLInputElement | HTMLTextAreaElement {
+  return element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement
+}
 
-  const inputValueSetter = Object.getOwnPropertyDescriptor(
-    window.HTMLInputElement.prototype,
-    'value',
-  )?.set
-  inputValueSetter?.call(target, 'S3')
+function typeS3IntoSearchField(target: HTMLInputElement | HTMLTextAreaElement): void {
+  const prototype =
+    target instanceof HTMLTextAreaElement
+      ? window.HTMLTextAreaElement.prototype
+      : window.HTMLInputElement.prototype
+  Object.getOwnPropertyDescriptor(prototype, 'value')?.set?.call(target, 'S3')
   target.dispatchEvent(
     new InputEvent('input', { bubbles: true, inputType: 'insertText', data: 'S3' }),
   )
@@ -102,17 +106,60 @@ export function putS3InSearch(target: HTMLElement | null): void {
   target.focus()
 }
 
+function resolveUnifiedSearchOpener(): HTMLElement | null {
+  const container = firstMatchingElement(AWS_UNIFIED_SEARCH_CONTAINER_SELECTOR)
+  if (!container) {
+    return null
+  }
+  const opener = firstMatchingElement(
+    '[aria-label="Search"], button, [role="button"], [role="combobox"]',
+    container,
+  )
+  return opener ?? container
+}
+
+export function resolveAwsSearchTarget(): HTMLInputElement | HTMLElement | null {
+  return firstMatchingElement(AWS_SEARCH_SELECTOR) ?? resolveUnifiedSearchOpener()
+}
+
+export function putS3InSearch(target: HTMLElement | null): void {
+  if (!target) {
+    return
+  }
+  if (isSearchField(target)) {
+    typeS3IntoSearchField(target)
+    return
+  }
+
+  target.click()
+  target.focus()
+  const revealed =
+    firstMatchingElement(AWS_SEARCH_SELECTOR) ??
+    firstMatchingElement('input, textarea, [role="searchbox"]', target)
+  if (revealed && isSearchField(revealed)) {
+    typeS3IntoSearchField(revealed)
+  }
+}
+
+function isS3ServiceResult(element: HTMLElement): boolean {
+  const text = normalizedText(element)
+  return /^S3\b/u.test(text) && /Scalable Storage in the Cloud/iu.test(text)
+}
+
 export function resolveS3ServiceResultTarget(): HTMLElement | null {
+  const dropdown = firstMatchingElement(AWS_SEARCH_RESULTS_SELECTOR)
+  if (!dropdown) {
+    return null
+  }
+
   const candidates = Array.from(
-    document.querySelectorAll<HTMLElement>(
+    dropdown.querySelectorAll<HTMLElement>(
       'a, button, [role="link"], [role="button"], [role="option"], [data-testid], [aria-label]',
     ),
   )
 
   for (const candidate of candidates) {
-    const text = normalizedText(candidate)
-    const isS3Service = /^S3\b/u.test(text) && /Scalable Storage in the Cloud/iu.test(text)
-    if (!isS3Service || !isVisibleEnough(candidate)) {
+    if (!isS3ServiceResult(candidate) || !isVisibleEnough(candidate)) {
       continue
     }
     assertSafeElement(candidate)
@@ -120,6 +167,21 @@ export function resolveS3ServiceResultTarget(): HTMLElement | null {
   }
 
   return null
+}
+
+export function resolveCookieAcceptTarget(): HTMLElement | null {
+  assertSafeSelector(AWS_COOKIE_BANNER_SELECTOR)
+  assertSafeSelector(AWS_COOKIE_ACCEPT_SELECTOR)
+  const banner = document.querySelector(AWS_COOKIE_BANNER_SELECTOR)
+  if (!(banner instanceof HTMLElement) || !isVisibleEnough(banner)) {
+    return null
+  }
+  const accept = banner.querySelector(AWS_COOKIE_ACCEPT_SELECTOR)
+  if (!(accept instanceof HTMLElement) || !isVisibleEnough(accept)) {
+    return null
+  }
+  assertSafeElement(accept)
+  return accept
 }
 
 export function stopWatchingForS3ServiceResult(): void {

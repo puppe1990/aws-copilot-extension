@@ -13,6 +13,18 @@ it('renders the extension name', () => {
   expect(screen.getByRole('button', { name: 'Start guide' })).toBeInTheDocument()
 })
 
+it('uses ink chrome without a radial wash or uppercase tracked labels', () => {
+  const { container } = render(<App />)
+  const markup = container.innerHTML
+  expect(markup).not.toMatch(/radial-gradient/)
+  expect(markup).not.toMatch(/uppercase/)
+  expect(markup).not.toMatch(/tracking-\[[0-9.]+em\]/)
+  expect(markup).not.toMatch(/font-black/)
+  expect(markup).not.toMatch(/from-amber-400/)
+  expect(container.querySelector('main')?.className).toMatch(/bg-\[#0b0d14\]/)
+  expect(screen.getByRole('button', { name: 'Start guide' }).className).toMatch(/bg-\[#ff9900\]/)
+})
+
 it('switches to Portuguese', async () => {
   render(<App />)
   await userEvent.selectOptions(screen.getByLabelText('Language'), 'pt-BR')

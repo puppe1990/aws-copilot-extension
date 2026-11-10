@@ -1,18 +1,18 @@
 @import 'tailwindcss';
 
 @theme {
-  --color-copilot-ink: #0f172a;
-  --color-copilot-panel: #111827;
-  --color-copilot-panel-soft: #172033;
-  --color-copilot-line: rgba(148, 163, 184, 0.22);
-  --color-copilot-copy: #e5edf8;
-  --color-copilot-mute: #9fb0c9;
+  --color-copilot-ink: #0b0d14;
+  --color-copilot-panel: #11141c;
+  --color-copilot-panel-soft: #161a24;
+  --color-copilot-line: rgba(237, 241, 248, 0.08);
+  --color-copilot-copy: #edf1f8;
+  --color-copilot-mute: #8b93a7;
   --color-copilot-accent: #ff9900;
   --color-copilot-accent-soft: #ffb84d;
 }
 
 @layer base {
   body {
-    @apply bg-slate-950 text-slate-100 antialiased;
+    @apply bg-[#0b0d14] text-[#edf1f8] antialiased;
   }
 }

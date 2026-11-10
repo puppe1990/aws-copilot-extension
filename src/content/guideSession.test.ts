@@ -77,10 +77,12 @@ it('suggests AWS search with S3 when the active guide step is on the wrong AWS p
 it('points to the S3 service result when it appears in AWS search', () => {
   document.body.innerHTML = `
     <input aria-label="Search" placeholder="Search" />
-    <a id="s3-service" href="/s3/home">
-      <span>S3</span>
-      <span>Scalable Storage in the Cloud</span>
-    </a>
+    <div id="awsc-concierge-dropdown" role="dialog" aria-label="Search results">
+      <a id="s3-service" href="/s3/home">
+        <span>S3</span>
+        <span>Scalable Storage in the Cloud</span>
+      </a>
+    </div>
   `
   const searchInput = document.querySelector('input[aria-label="Search"]') as HTMLInputElement
   const s3Service = document.getElementById('s3-service') as HTMLElement
@@ -152,6 +154,10 @@ it('moves the spotlight from search to S3 after search results render', async ()
 
   expect(document.querySelector('[data-aws-copilot-highlight]')).not.toBeInTheDocument()
 
+  const dropdown = document.createElement('div')
+  dropdown.id = 'awsc-concierge-dropdown'
+  dropdown.setAttribute('role', 'dialog')
+  dropdown.setAttribute('aria-label', 'Search results')
   const s3Service = document.createElement('a')
   s3Service.href = '/s3/home'
   s3Service.textContent = 'S3 Scalable Storage in the Cloud'
@@ -166,7 +172,8 @@ it('moves the spotlight from search to S3 after search results render', async ()
     height: 60,
     toJSON: () => ({}),
   } as DOMRect)
-  document.body.appendChild(s3Service)
+  dropdown.appendChild(s3Service)
+  document.body.appendChild(dropdown)
   await new Promise((resolve) => setTimeout(resolve, 0))
 
   const highlight = document.querySelector('[data-aws-copilot-highlight]') as HTMLElement

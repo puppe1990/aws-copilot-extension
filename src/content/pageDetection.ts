@@ -1,6 +1,7 @@
 export type AwsPage =
   | { kind: 'notAws' }
   | { kind: 'awsUnknown' }
+  | { kind: 'consoleHome' }
   | { kind: 's3BucketsList' }
   | { kind: 's3CreateBucket' }
   | { kind: 's3BucketSettings' }
@@ -32,7 +33,15 @@ export function detectAwsPage(url: string): AwsPage {
     return { kind: 'iamCreatePolicy' }
   }
 
+  if (isConsoleHomePage(pathname)) {
+    return { kind: 'consoleHome' }
+  }
+
   return { kind: 'awsUnknown' }
+}
+
+function isConsoleHomePage(pathname: string): boolean {
+  return pathname === '/console/home' || pathname === '/console'
 }
 
 function isS3BucketsListPage(hostname: string, pathname: string): boolean {

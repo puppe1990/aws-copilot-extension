@@ -12,10 +12,12 @@ import {
   type Locale,
   type RecoveryMode,
 } from './contentGuideCatalog'
+import { isHomeIntroStepId, resolveHomeIntroTarget } from './consoleHomeIntro'
 import {
   putS3InSearch,
   resolveAwsSearchTarget,
   resolveBucketFormTarget,
+  resolveCookieAcceptTarget,
   resolveCreateBucketButtonTarget,
   resolveS3ServiceResultTarget,
 } from './consoleTargets'
@@ -32,6 +34,7 @@ export type GuideRenderContext = {
   searchTarget: HTMLElement | null
   s3ServiceTarget: HTMLElement | null
   createBucketTarget: HTMLElement | null
+  cookieAcceptTarget: HTMLElement | null
   target: HTMLElement | null
   shouldSearchS3: boolean
   keepFloatingWithoutBackdrop: boolean
@@ -84,8 +87,18 @@ export function deriveRecoveryMode(
   page: AwsPage,
   isExpectedStepPage: boolean,
   isBucketLanding: boolean,
+  cookieBannerBlocking = false,
 ): RecoveryMode {
-  if (!step || isExpectedStepPage || isBucketLanding || page.kind === 'notAws') {
+  if (!step || page.kind === 'notAws') {
+    return 'none'
+  }
+  if (cookieBannerBlocking) {
+    return 'acceptCookies'
+  }
+  if (isExpectedStepPage || isBucketLanding) {
+    return 'none'
+  }
+  if (isHomeIntroStepId(step.id)) {
     return 'none'
   }
   if (step.id === 'iamPolicy') {
@@ -171,7 +184,14 @@ export function deriveGuideRenderContext(input: GuideRenderContextInput): GuideR
   const isExpectedStepPage = Boolean(
     step && (matchesExpectedStepPage(step, page) || isBucketCreateForm),
   )
-  const recoveryMode = deriveRecoveryMode(step, page, isExpectedStepPage, isBucketLanding)
+  const cookieAcceptTarget = resolveCookieAcceptTarget()
+  const recoveryMode = deriveRecoveryMode(
+    step,
+    page,
+    isExpectedStepPage,
+    isBucketLanding,
+    Boolean(cookieAcceptTarget),
+  )
   const searchTarget = recoveryMode === 'searchS3' ? resolveAwsSearchTarget() : null
   const shouldSearchS3 = recoveryMode === 'searchS3' && Boolean(searchTarget)
 
@@ -181,7 +201,12 @@ export function deriveGuideRenderContext(input: GuideRenderContextInput): GuideR
 
   const s3ServiceTarget = searchTarget ? resolveS3ServiceResultTarget() : null
   const createBucketTarget = isBucketLanding ? resolveCreateBucketButtonTarget() : null
+  const isHomeIntro = Boolean(step && isHomeIntroStepId(step.id))
+  const homeIntroTarget =
+    isHomeIntro && recoveryMode !== 'acceptCookies' && step ? resolveHomeIntroTarget(step.id) : null
   const target =
+    (recoveryMode === 'acceptCookies' ? cookieAcceptTarget : null) ??
+    homeIntroTarget ??
     bucketFormTarget ??
     createBucketTarget ??
     (step?.highlightSelector && isExpectedStepPage
@@ -189,7 +214,7 @@ export function deriveGuideRenderContext(input: GuideRenderContextInput): GuideR
         ? resolveHighlightTarget(step.highlightSelector)
         : resolveHighlightTargetForDiagnostics(step.highlightSelector)
       : s3ServiceTarget)
-  const keepFloatingWithoutBackdrop = isExpectedStepPage && !target
+  const keepFloatingWithoutBackdrop = ((isExpectedStepPage || isHomeIntro) && !target) || false
   const substepsVisible = Boolean(
     step &&
     (isExpectedStepPage || recoveryMode === 'openIam') &&
@@ -207,6 +232,7 @@ export function deriveGuideRenderContext(input: GuideRenderContextInput): GuideR
     searchTarget,
     s3ServiceTarget,
     createBucketTarget,
+    cookieAcceptTarget: recoveryMode === 'acceptCookies' ? cookieAcceptTarget : null,
     target,
     shouldSearchS3,
     keepFloatingWithoutBackdrop,

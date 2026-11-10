@@ -11,7 +11,7 @@ npm run check           # ci + tsc --noEmit + vite build + playwright
 npx playwright install chromium   # once on a clean machine
 ```
 
-Load unpacked from `dist/` after `npm run build`. Pre-commit: Husky + lint-staged, then `npm test`.
+Load unpacked from `dist/` after `npm run build`. Content script is a separate IIFE build (`vite.content.config.ts`); Chrome cannot inject ESM `import`. Pre-commit: Husky + lint-staged, then `npm test`.
 
 ## Code style
 
@@ -65,13 +65,17 @@ Two catalogs share step ids `objective | bucket | security | iamPolicy | review`
 - `src/guides/s3IamGuide.ts` — panel. Translation keys only.
 - `src/content/contentGuideCatalog.ts` — content overlay. Inline `{en, pt-BR}` copy (isolated world, no panel i18n bundle).
 
-Keep ids in lockstep. Do not add Lambda/EC2 workflows, chat, backend, or cloud sync.
+Keep S3 ids in lockstep. Do not add Lambda/EC2 workflows, chat, backend, or cloud sync.
+
+In-page Guide (`data-aws-copilot-toolbar`) starts `console-home-intro` (`src/content/consoleHomeIntro.ts`, 20 steps: header chrome, Agent Toolkit banner, then Console Home widgets). Headings are resolved by iterating `h1–h3` inside `main` first, never as CSS selectors, skipping `nav` / overlay / cookie dialog. Home intro recovery is cookies or none — it must not type S3. The popup still starts `s3-iam-app-access`.
 
 ## Messages (content script)
 
 `AWS_COPILOT_HIGHLIGHT | START_GUIDE | RENDER_GUIDE_STEP | DETECT_PAGE | EXTRACT_DEBUG_CONTEXT | GET_GUIDE_SNAPSHOT`.
 
 Console `MutationObserver`s take callbacks (`watchForS3ServiceResult(onFound)`). Do not import `guideSession` from `consoleTargets`.
+
+Console Home (`/console/home`) is `consoleHome`. Unified search is `#aws-unified-search-container`. S3 results only inside `#awsc-concierge-dropdown` (never Recently visited). Visible cookie banner `#awsccc-cb-c` is recovery `acceptCookies`. Header button `data-aws-copilot-toolbar` is `position:fixed` on `document.body` (AWS React wipes header children). It sits to the right of `#aws-unified-search-container`. SPA remount re-injects.
 
 ## Out of scope
 
