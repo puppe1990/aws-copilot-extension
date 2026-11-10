@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Console Home | us-east-1</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #0f141a;
+        color: #edf1f8;
+        font-family: system-ui, sans-serif;
+      }
+      #awsc-nav-header {
+        display: flex;
+        align-items: center;
+        height: 48px;
+        padding: 0 16px;
+        background: #161d26;
+      }
+      #aws-unified-search-container {
+        flex: 1;
+        height: 32px;
+        margin: 0 24px;
+        border-radius: 8px;
+        background: #232f3e;
+      }
+    </style>
+  </head>
+  <body>
+    <header id="awsc-nav-header">
+      <nav aria-label="Global" style="display: flex; flex: 1; align-items: center">
+        <span>aws</span>
+        <div id="aws-unified-search-container"></div>
+        <button data-testid="awsc-phd__bell-icon" type="button">9</button>
+      </nav>
+    </header>
+    <script src="/dist/content.js"></script>
+  </body>
+</html>

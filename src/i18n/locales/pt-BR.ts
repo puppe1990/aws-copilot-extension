@@ -5,6 +5,8 @@ export const ptBR: TranslationKeyMap = {
   'app.subtitle': 'Crie um bucket S3 e uma política IAM para acesso da aplicação.',
   'app.panelBadge': 'Roda dentro do Console da AWS',
   'app.panelBody': 'Inicie o guia e siga o spotlight diretamente na interface da AWS.',
+  'guide.idleSteps': '{count} etapas. O spotlight fica no controle do Console da AWS.',
+  'debug.mode': 'Modo debug',
   'language.label': 'Idioma',
   'guide.start': 'Iniciar guia',
   'guide.restart': 'Reiniciar guia',

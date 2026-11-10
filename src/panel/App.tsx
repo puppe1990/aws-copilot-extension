@@ -176,22 +176,22 @@ export function App() {
   }
 
   return (
-    <main className="w-[380px] bg-[radial-gradient(circle_at_top,_rgba(255,153,0,0.18),_transparent_38%),linear-gradient(180deg,_#111827_0%,_#0b1220_100%)] p-4 text-slate-50">
-      <section className="overflow-hidden rounded-[28px] border border-white/10 bg-slate-950/70 shadow-[0_24px_80px_rgba(15,23,42,0.55)] backdrop-blur">
-        <div className="border-b border-white/10 px-5 py-4">
-          <div className="mb-3 flex items-start justify-between gap-4">
+    <main className="w-[380px] bg-[#0b0d14] p-4 text-[#edf1f8]">
+      <section className="overflow-hidden rounded-[16px] border border-[rgba(237,241,248,0.08)] bg-[#11141c]">
+        <div className="border-b border-[rgba(237,241,248,0.08)] px-5 py-4">
+          <div className="mb-4 flex items-start justify-between gap-4">
             <div>
-              <p className="mb-2 inline-flex rounded-full border border-amber-400/25 bg-amber-400/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-amber-200">
+              <p className="mb-2 text-[11px] font-medium text-[#8b93a7]">
                 {t(locale, 'app.panelBadge')}
               </p>
-              <h1 className="text-3xl font-black leading-none tracking-[-0.04em] text-white">
+              <h1 className="text-xl font-medium leading-tight text-[#edf1f8]">
                 {t(locale, 'app.title')}
               </h1>
             </div>
-            <label className="flex min-w-[120px] flex-col gap-1 text-[11px] font-medium uppercase tracking-[0.2em] text-slate-400">
+            <label className="flex min-w-[120px] flex-col gap-1 text-[11px] font-medium text-[#8b93a7]">
               {t(locale, 'language.label')}
               <select
-                className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium tracking-normal text-slate-100 outline-none transition focus:border-amber-400/60"
+                className="rounded-[8px] border border-[rgba(237,241,248,0.08)] bg-[#161a24] px-3 py-2 text-sm font-medium text-[#edf1f8] outline-none transition-colors focus:border-[#ff9900]"
                 value={locale}
                 onChange={(event) => setLocale(event.target.value as Locale)}
               >
@@ -200,19 +200,19 @@ export function App() {
               </select>
             </label>
           </div>
-          <label className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
+          <label className="flex items-center gap-2 text-xs font-medium text-[#8b93a7]">
             <input
               checked={debugMode}
-              className="h-4 w-4 rounded border-white/20 bg-white/5 text-amber-400 outline-none"
+              className="h-4 w-4 rounded border-[rgba(237,241,248,0.08)] bg-[#161a24] text-[#ff9900] outline-none"
               type="checkbox"
               onChange={(event) => void updateDebugMode(event.target.checked)}
             />
-            Debug mode
+            {t(locale, 'debug.mode')}
           </label>
-          <p className="max-w-[28ch] text-sm leading-6 text-slate-300">
+          <p className="mt-4 max-w-[28ch] text-sm leading-6 text-[#c4cad8]">
             {t(locale, 'app.panelBody')}
           </p>
-          <p className="mt-3 text-xs leading-5 text-slate-500">{t(locale, 'status.localOnly')}</p>
+          <p className="mt-3 text-xs leading-5 text-[#8b93a7]">{t(locale, 'status.localOnly')}</p>
         </div>
 
         {started ? (

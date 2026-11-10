@@ -11,7 +11,6 @@ export default defineConfig({
     rollupOptions: {
       input: {
         panel: 'index.html',
-        content: 'src/content/main.ts',
       },
       output: {
         entryFileNames: '[name].js',

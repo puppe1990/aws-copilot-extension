@@ -33,16 +33,16 @@ function createActionButton(
   const button = document.createElement('button')
   button.type = 'button'
   button.textContent = label
-  button.style.borderRadius = '16px'
-  button.style.padding = '12px 16px'
-  button.style.fontSize = '14px'
-  button.style.fontWeight = '600'
-  button.style.transition = 'opacity 120ms ease, transform 120ms ease'
+  button.style.borderRadius = '8px'
+  button.style.padding = '8px 12px'
+  button.style.fontSize = '13px'
+  button.style.fontWeight = '500'
+  button.style.transition = 'opacity 120ms ease, background-color 120ms ease'
   button.style.cursor = disabled ? 'not-allowed' : 'pointer'
   button.style.opacity = disabled ? '0.5' : '1'
-  button.style.border = variant === 'primary' ? '0' : '1px solid rgba(255, 255, 255, 0.1)'
-  button.style.background = variant === 'primary' ? '#ff9900' : 'rgba(255, 255, 255, 0.04)'
-  button.style.color = variant === 'primary' ? '#020617' : '#ffffff'
+  button.style.border = variant === 'primary' ? '0' : '1px solid rgba(237, 241, 248, 0.08)'
+  button.style.background = variant === 'primary' ? 'rgb(255, 153, 0)' : 'transparent'
+  button.style.color = variant === 'primary' ? 'rgb(11, 13, 20)' : 'rgb(237, 241, 248)'
   button.disabled = disabled
   button.addEventListener('click', (event) => {
     event.preventDefault()
@@ -115,24 +115,24 @@ function appendOverlayBody(inner: HTMLElement, content: GuideOverlayContent): vo
   appendStyledText(inner, 'p', content.progressLabel, {
     margin: '0',
     fontSize: '11px',
-    fontWeight: '700',
-    letterSpacing: '0.22em',
-    textTransform: 'uppercase',
-    color: '#fde68a',
+    fontWeight: '500',
+    letterSpacing: '0.02em',
+    textTransform: 'none',
+    color: '#8b93a7',
   })
   appendStyledText(inner, 'h2', content.stepTitle, {
     margin: '0',
-    fontSize: '30px',
-    lineHeight: '1.05',
-    fontWeight: '700',
-    letterSpacing: '-0.03em',
-    color: '#ffffff',
+    fontSize: '20px',
+    lineHeight: '1.25',
+    fontWeight: '500',
+    letterSpacing: '0',
+    color: '#edf1f8',
   })
   appendStyledText(inner, 'p', content.stepBody, {
     margin: '0',
     fontSize: '14px',
-    lineHeight: '1.7',
-    color: '#e2e8f0',
+    lineHeight: '1.6',
+    color: '#c4cad8',
   })
 
   if (content.substeps && content.substeps.length > 0) {
@@ -143,7 +143,7 @@ function appendOverlayBody(inner: HTMLElement, content: GuideOverlayContent): vo
     list.style.padding = '0 0 0 18px'
     list.style.fontSize = '13px'
     list.style.lineHeight = '1.55'
-    list.style.color = '#cbd5e1'
+    list.style.color = '#c4cad8'
     for (const substep of content.substeps) {
       const item = document.createElement('li')
       item.textContent = substep
@@ -158,12 +158,12 @@ function appendOverlayBody(inner: HTMLElement, content: GuideOverlayContent): vo
       overflow: 'auto',
       margin: '0',
       padding: '16px',
-      borderRadius: '16px',
-      border: '1px solid rgba(255, 255, 255, 0.1)',
-      background: 'rgba(15, 23, 42, 0.85)',
+      borderRadius: '8px',
+      border: '1px solid rgba(237, 241, 248, 0.08)',
+      background: '#11141c',
       fontSize: '12px',
-      lineHeight: '1.7',
-      color: '#f8fafc',
+      lineHeight: '1.6',
+      color: '#edf1f8',
     })
   }
 }
@@ -195,12 +195,11 @@ export function renderGuideOverlay(target: HTMLElement | null, content: GuideOve
   card.style.maxHeight = 'calc(100vh - 32px)'
   card.style.overflowX = 'hidden'
   card.style.overflowY = 'auto'
-  card.style.borderRadius = '28px'
-  card.style.border = '1px solid rgba(255, 255, 255, 0.1)'
-  card.style.background = 'rgba(2, 6, 23, 0.95)'
-  card.style.color = '#f8fafc'
-  card.style.boxShadow = '0 28px 90px rgba(15, 23, 42, 0.6)'
-  card.style.backdropFilter = 'blur(18px)'
+  card.style.borderRadius = '16px'
+  card.style.border = '1px solid rgba(237, 241, 248, 0.08)'
+  card.style.background = 'rgb(11, 13, 20)'
+  card.style.color = '#edf1f8'
+  card.style.boxShadow = 'none'
 
   const inner = document.createElement('div')
   inner.style.display = 'grid'

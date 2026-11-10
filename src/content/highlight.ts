@@ -67,12 +67,12 @@ export function highlightElement(
   overlay.style.position = 'fixed'
   overlay.style.zIndex = '2147483646'
   overlay.style.pointerEvents = 'none'
-  overlay.style.borderRadius = '24px'
+  overlay.style.borderRadius = '8px'
   overlay.style.border = '2px solid #ff9900'
   overlay.style.boxShadow =
     options.dimBackdrop === false
       ? '0 0 0 4px rgba(255, 153, 0, 0.22)'
-      : '0 0 0 9999px rgba(2, 6, 23, 0.7), 0 0 0 4px rgba(255, 153, 0, 0.15)'
+      : '0 0 0 9999px rgba(11, 13, 20, 0.72), 0 0 0 4px rgba(255, 153, 0, 0.15)'
   document.body.appendChild(overlay)
 }
 

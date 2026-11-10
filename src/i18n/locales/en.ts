@@ -3,6 +3,8 @@ export const en = {
   'app.subtitle': 'Create an S3 bucket and IAM policy for app access.',
   'app.panelBadge': 'Runs inside AWS Console',
   'app.panelBody': 'Start the guide, then follow the spotlight directly in the AWS interface.',
+  'guide.idleSteps': '{count} steps. Spotlight sits on the AWS Console control you need.',
+  'debug.mode': 'Debug mode',
   'language.label': 'Language',
   'guide.start': 'Start guide',
   'guide.restart': 'Restart guide',

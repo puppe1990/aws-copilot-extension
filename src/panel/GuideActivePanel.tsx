@@ -36,39 +36,39 @@ export function GuideActivePanel({
   return (
     <div className="space-y-4 px-5 py-5">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+        <p className="text-xs font-medium text-[#8b93a7]">
           Step {guideState.activeStepIndex + 1} of {s3IamGuide.steps.length}
         </p>
-        <p className="text-xs font-medium text-emerald-300">{t(locale, 'guide.launchStatus')}</p>
+        <p className="text-xs font-medium text-[#8b93a7]">{t(locale, 'guide.launchStatus')}</p>
       </div>
 
-      <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+      <div className="h-1 overflow-hidden rounded-full bg-[#161a24]">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-300 transition-[width]"
+          className="h-full rounded-full bg-[#ff9900] transition-[width]"
           style={{
             width: `${((guideState.activeStepIndex + 1) / s3IamGuide.steps.length) * 100}%`,
           }}
         />
       </div>
 
-      <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
-        <h2 className="text-2xl font-semibold leading-tight tracking-[-0.03em] text-white">
+      <section className="rounded-[12px] border border-[rgba(237,241,248,0.08)] bg-[#161a24] p-4">
+        <h2 className="text-lg font-medium leading-snug text-[#edf1f8]">
           {t(locale, step.titleKey)}
         </h2>
-        <p className="mt-3 text-sm leading-6 text-slate-300">{t(locale, step.bodyKey, values)}</p>
+        <p className="mt-3 text-sm leading-6 text-[#c4cad8]">{t(locale, step.bodyKey, values)}</p>
         {guideSnapshot?.guideMode === 'active' ? (
-          <div className="mt-4 rounded-2xl border border-white/10 bg-slate-950/40 p-3">
-            <p className="text-sm font-semibold text-white">{guideSnapshot.statusText}</p>
-            <p className="mt-1 text-sm leading-6 text-slate-300">{guideSnapshot.goalText}</p>
+          <div className="mt-4 rounded-[8px] border border-[rgba(237,241,248,0.08)] bg-[#0b0d14] p-3">
+            <p className="text-sm font-medium text-[#edf1f8]">{guideSnapshot.statusText}</p>
+            <p className="mt-1 text-sm leading-6 text-[#c4cad8]">{guideSnapshot.goalText}</p>
           </div>
         ) : null}
         {recoveryMessage ? (
-          <p className="mt-4 rounded-2xl border border-rose-400/25 bg-rose-500/10 px-3 py-2 text-sm text-rose-100">
+          <p className="mt-4 rounded-[8px] border border-[rgba(237,241,248,0.08)] bg-[#0b0d14] px-3 py-2 text-sm text-[#c4cad8]">
             {recoveryMessage}
           </p>
         ) : null}
         {policyTemplate ? (
-          <pre className="mt-4 overflow-x-auto rounded-2xl border border-white/10 bg-slate-950/80 p-4 text-xs leading-6 text-slate-200">
+          <pre className="mt-4 overflow-x-auto rounded-[8px] border border-[rgba(237,241,248,0.08)] bg-[#0b0d14] p-4 text-xs leading-6 text-[#edf1f8]">
             {policyTemplate}
           </pre>
         ) : null}
@@ -78,14 +78,14 @@ export function GuideActivePanel({
         <button
           type="button"
           disabled={detectedPage?.kind === 'notAws'}
-          className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-[8px] border border-[rgba(237,241,248,0.08)] bg-transparent px-4 py-3 text-sm font-medium text-[#edf1f8] transition-colors hover:bg-[#161a24] disabled:cursor-not-allowed disabled:opacity-50"
           onClick={onSpotlight}
         >
           {t(locale, 'action.openSpotlight')}
         </button>
         <button
           type="button"
-          className="rounded-2xl bg-amber-400 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-amber-300"
+          className="rounded-[8px] bg-[#ff9900] px-4 py-3 text-sm font-medium text-[#0b0d14] transition-colors hover:bg-[#ffb84d]"
           onClick={onNext}
         >
           {t(locale, 'action.next')}
@@ -95,7 +95,7 @@ export function GuideActivePanel({
       {policyTemplate ? (
         <button
           type="button"
-          className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-white/[0.08]"
+          className="w-full rounded-[8px] border border-[rgba(237,241,248,0.08)] bg-transparent px-4 py-3 text-sm font-medium text-[#edf1f8] transition-colors hover:bg-[#161a24]"
           onClick={onCopyPolicy}
         >
           {t(locale, 'action.copyPolicyJson')}
@@ -104,7 +104,7 @@ export function GuideActivePanel({
 
       <button
         type="button"
-        className="w-full rounded-2xl border border-white/10 bg-transparent px-4 py-3 text-sm font-semibold text-slate-400 transition hover:border-white/20 hover:text-white"
+        className="w-full rounded-[8px] border border-[rgba(237,241,248,0.08)] bg-transparent px-4 py-3 text-sm font-medium text-[#8b93a7] transition-colors hover:text-[#edf1f8]"
         onClick={onRestart}
       >
         {t(locale, 'guide.restart')}

@@ -4,12 +4,34 @@ import { detectAwsPage, type AwsPage } from './pageDetection'
 // the panel i18n bundle. Keep step ids in lockstep with src/guides/s3IamGuide.ts.
 
 export type Locale = 'en' | 'pt-BR'
-export type GuideStepId = 'objective' | 'bucket' | 'security' | 'iamPolicy' | 'review'
+export type S3GuideStepId = 'objective' | 'bucket' | 'security' | 'iamPolicy' | 'review'
+export type HomeIntroStepId =
+  | 'search'
+  | 'services'
+  | 'assistant'
+  | 'notifications'
+  | 'help'
+  | 'settings'
+  | 'region'
+  | 'account'
+  | 'agentToolkit'
+  | 'recent'
+  | 'welcome'
+  | 'health'
+  | 'cost'
+  | 'solutions'
+  | 'explore'
+  | 'securityWidget'
+  | 'announcements'
+  | 'blog'
+  | 'trustedAdvisor'
+  | 'cloudshell'
+export type GuideStepId = S3GuideStepId | HomeIntroStepId
 export type GuideState = {
   activeStepIndex: number
   completedStepIds: GuideStepId[]
 }
-export type RecoveryMode = 'none' | 'searchS3' | 'openIam'
+export type RecoveryMode = 'none' | 'searchS3' | 'openIam' | 'acceptCookies'
 export type GuideSnapshot = {
   guideMode: 'not_started' | 'active'
   pageKind: AwsPage['kind']
@@ -39,17 +61,24 @@ export type ContentGuideStep = {
   body: Record<Locale, string>
   substeps?: Record<Locale, string[]>
   expectedPage:
-    'anyAws' | 's3BucketsList' | 's3CreateBucket' | 's3BucketSettings' | 'iamCreatePolicy'
+    | 'anyAws'
+    | 'consoleHome'
+    | 's3BucketsList'
+    | 's3CreateBucket'
+    | 's3BucketSettings'
+    | 'iamCreatePolicy'
   highlightSelector?: string
   policyTemplate?: string
 }
+export type ContentGuideId = typeof CONTENT_GUIDE_ID | typeof HOME_INTRO_GUIDE_ID
 export type PersistedActiveGuide = {
-  guideId: typeof CONTENT_GUIDE_ID
+  guideId: ContentGuideId
   locale: Locale
   state: GuideState
 }
 
 export const CONTENT_GUIDE_ID = 's3-iam-app-access'
+export const HOME_INTRO_GUIDE_ID = 'console-home-intro'
 export const LOCALES: Locale[] = ['en', 'pt-BR']
 export const EXAMPLE_BUCKET_NAME = 'my-app-uploads-prod'
 export const START_STEP_INDEX = 1
@@ -72,6 +101,10 @@ export const overlayLabels = {
     en: 'Search for S3 in the AWS Console, then open Amazon S3.',
     'pt-BR': 'Busque por S3 no Console da AWS e abra Amazon S3.',
   },
+  wrongPageHomeIntro: {
+    en: 'Open Console Home to continue this introduction.',
+    'pt-BR': 'Abra a pagina inicial do Console para continuar esta introducao.',
+  },
   notAws: {
     en: 'Open the AWS Console to use this guide.',
     'pt-BR': 'Abra o Console da AWS para usar este guia.',
@@ -79,6 +112,28 @@ export const overlayLabels = {
   searchS3: {
     en: 'Search S3',
     'pt-BR': 'Buscar S3',
+  },
+  toolbarGuide: {
+    en: 'Guide',
+    'pt-BR': 'Guia',
+  },
+  toolbarAria: {
+    en: 'AWS Copilot guide',
+    'pt-BR': 'Guia AWS Copilot',
+  },
+  acceptCookies: {
+    en: 'Accept cookies',
+    'pt-BR': 'Aceitar cookies',
+  },
+  cookieBanner: {
+    en: 'The AWS cookie banner is covering the Console. Accept cookies, then search for S3.',
+    'pt-BR':
+      'O aviso de cookies da AWS esta cobrindo o Console. Aceite os cookies e depois busque por S3.',
+  },
+  cookieBannerHomeIntro: {
+    en: 'The AWS cookie banner is covering the Console. Accept cookies to continue this introduction.',
+    'pt-BR':
+      'O aviso de cookies da AWS esta cobrindo o Console. Aceite os cookies para continuar esta introducao.',
   },
   openIam: {
     en: 'Open IAM',
@@ -125,7 +180,16 @@ export const AWS_SEARCH_SELECTOR = [
   'input[placeholder="Search"]',
   'input[type="search"]',
   '[role="searchbox"]',
+  '#aws-unified-search-container input',
+  '#aws-unified-search-container textarea',
+  '#aws-unified-search-container [role="searchbox"]',
+  '#aws-unified-search-container [role="combobox"]',
 ].join(', ')
+
+export const AWS_UNIFIED_SEARCH_CONTAINER_SELECTOR = '#aws-unified-search-container'
+export const AWS_SEARCH_RESULTS_SELECTOR = '#awsc-concierge-dropdown'
+export const AWS_COOKIE_BANNER_SELECTOR = '#awsccc-cb-c'
+export const AWS_COOKIE_ACCEPT_SELECTOR = 'button[aria-label="Accept all cookies"]'
 
 export const BUCKET_NAME_FIELD_SELECTORS = [
   '[data-testid="bucket-name"]',
@@ -323,7 +387,7 @@ export function isBucketStepLandingPage(step: ContentGuideStep, page: AwsPage): 
 export function isPersistedActiveGuide(value: unknown): value is PersistedActiveGuide {
   const candidate = value as PersistedActiveGuide | null | undefined
   return (
-    candidate?.guideId === CONTENT_GUIDE_ID &&
+    (candidate?.guideId === CONTENT_GUIDE_ID || candidate?.guideId === HOME_INTRO_GUIDE_ID) &&
     LOCALES.includes(candidate.locale) &&
     typeof candidate.state?.activeStepIndex === 'number' &&
     Array.isArray(candidate.state.completedStepIds)

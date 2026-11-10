@@ -12,7 +12,7 @@
   },
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build": "vite build",
+    "build": "vite build && vite build --config vite.content.config.ts && node scripts/assert-content-iife.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
@@ -45,6 +45,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@faker-js/faker": "^10.6.0",
     "@playwright/test": "^1.59.1",
     "@testing-library/jest-dom": "^6.6.0",
     "@testing-library/react": "^16.2.0",

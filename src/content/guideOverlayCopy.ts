@@ -1,10 +1,17 @@
 import { overlayLabels, type Locale } from './contentGuideCatalog'
+import { isHomeIntroStepId } from './consoleHomeIntro'
 import { resolveActiveGuideContext, type GuideRenderContext } from './guideRenderContext'
 
 export function overlayStepBody(context: GuideRenderContext, locale: Locale): string {
   const step = context.step
+  const homeIntro = Boolean(step && isHomeIntroStepId(step.id))
   if (!step) {
     return overlayLabels.wrongPage[locale]
+  }
+  if (context.recoveryMode === 'acceptCookies') {
+    return homeIntro
+      ? overlayLabels.cookieBannerHomeIntro[locale]
+      : overlayLabels.cookieBanner[locale]
   }
   if (context.isBucketLanding) {
     return overlayLabels.openCreateBucket[locale]
@@ -16,7 +23,7 @@ export function overlayStepBody(context: GuideRenderContext, locale: Locale): st
   if (context.page.kind === 'notAws') {
     return overlayLabels.notAws[locale]
   }
-  return overlayLabels.wrongPage[locale]
+  return homeIntro ? overlayLabels.wrongPageHomeIntro[locale] : overlayLabels.wrongPage[locale]
 }
 
 export function overlaySubsteps(context: GuideRenderContext, locale: Locale): string[] | undefined {
@@ -35,6 +42,9 @@ export function overlayPrimaryActionLabel(
   locale: Locale,
   isLastStep: boolean,
 ): string {
+  if (context.recoveryMode === 'acceptCookies') {
+    return overlayLabels.acceptCookies[locale]
+  }
   if (context.recoveryMode === 'searchS3') {
     return overlayLabels.searchS3[locale]
   }

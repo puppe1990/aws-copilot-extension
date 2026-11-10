@@ -4,6 +4,7 @@ import { detectAwsPage } from './pageDetection'
 import {
   ACTIVE_GUIDE_STORAGE_KEY,
   CONTENT_GUIDE_ID,
+  HOME_INTRO_GUIDE_ID,
   LOCALES,
   completedStepIdsForIndex,
   contentGuideSteps,
@@ -11,11 +12,14 @@ import {
   isPersistedActiveGuide,
   overlayLabels,
   stepIndexForHref,
+  type ContentGuideId,
+  type ContentGuideStep,
   type ContentMessage,
   type GuideState,
   type GuideStepId,
   type Locale,
 } from './contentGuideCatalog'
+import { homeIntroSteps } from './consoleHomeIntro'
 import {
   putS3InSearch,
   stopWatchingForBucketForm,
@@ -32,8 +36,25 @@ import { buildDebugContextMarkdown } from './debugContextMarkdown'
 import { overlayPrimaryActionLabel, overlayStepBody, overlaySubsteps } from './guideOverlayCopy'
 
 let activeLocale: Locale = 'en'
+let activeGuideId: ContentGuideId = CONTENT_GUIDE_ID
 let activeGuideState: GuideState | null = null
 let activeHref = window.location.href
+
+function stepsForGuide(guideId: ContentGuideId): ContentGuideStep[] {
+  return guideId === HOME_INTRO_GUIDE_ID ? homeIntroSteps : contentGuideSteps
+}
+
+function activeGuideSteps(): ContentGuideStep[] {
+  return stepsForGuide(activeGuideId)
+}
+
+function isContentGuideId(value: unknown): value is ContentGuideId {
+  return value === CONTENT_GUIDE_ID || value === HOME_INTRO_GUIDE_ID
+}
+
+function startIndexForGuide(guideId: ContentGuideId, href: string): number {
+  return guideId === HOME_INTRO_GUIDE_ID ? 0 : stepIndexForHref(href)
+}
 
 function getGuideStorage(): chrome.storage.StorageArea | null {
   if (typeof chrome === 'undefined' || !chrome.storage) {
@@ -49,7 +70,7 @@ function persistActiveGuide(): void {
   }
   storage.set?.({
     [ACTIVE_GUIDE_STORAGE_KEY]: {
-      guideId: CONTENT_GUIDE_ID,
+      guideId: activeGuideId,
       locale: activeLocale,
       state: activeGuideState,
     },
@@ -64,7 +85,7 @@ function activeContentGuideStep() {
   if (!activeGuideState) {
     return null
   }
-  return contentGuideSteps[activeGuideState.activeStepIndex] ?? null
+  return activeGuideSteps()[activeGuideState.activeStepIndex] ?? null
 }
 
 function advanceContentGuideState(state: GuideState, stepId: GuideStepId): GuideState {
@@ -72,7 +93,7 @@ function advanceContentGuideState(state: GuideState, stepId: GuideStepId): Guide
     ? state.completedStepIds
     : [...state.completedStepIds, stepId]
   return {
-    activeStepIndex: Math.min(state.activeStepIndex + 1, contentGuideSteps.length - 1),
+    activeStepIndex: Math.min(state.activeStepIndex + 1, activeGuideSteps().length - 1),
     completedStepIds,
   }
 }
@@ -105,6 +126,11 @@ function handleOverlayPrimaryAction(context: GuideRenderContext, isLastStep: boo
   if (context.isBucketLanding) {
     watchForBucketForm(renderCurrentGuideStep, () => activeContentGuideStep()?.id === 'bucket')
     context.createBucketTarget?.click()
+    return
+  }
+  if (context.recoveryMode === 'acceptCookies') {
+    context.cookieAcceptTarget?.click()
+    renderCurrentGuideStep()
     return
   }
   if (context.recoveryMode === 'searchS3') {
@@ -148,9 +174,9 @@ function renderCurrentGuideStep(): void {
   }
 
   syncConsoleWatchers(context)
-  const isLastStep = activeGuideState.activeStepIndex === contentGuideSteps.length - 1
+  const isLastStep = activeGuideState.activeStepIndex === activeGuideSteps().length - 1
   renderGuideOverlay(context.target, {
-    progressLabel: `Step ${activeGuideState.activeStepIndex + 1} of ${contentGuideSteps.length}`,
+    progressLabel: `Step ${activeGuideState.activeStepIndex + 1} of ${activeGuideSteps().length}`,
     stepTitle: step.title[activeLocale],
     stepBody: overlayStepBody(context, activeLocale),
     substeps: overlaySubsteps(context, activeLocale),
@@ -175,9 +201,10 @@ function renderCurrentGuideStep(): void {
 }
 
 function renderRequestedGuideStep(requestedIndex: number): void {
+  const steps = activeGuideSteps()
   activeGuideState = {
-    activeStepIndex: Math.min(Math.max(requestedIndex, 0), contentGuideSteps.length - 1),
-    completedStepIds: contentGuideSteps.slice(0, requestedIndex).map((step) => step.id),
+    activeStepIndex: Math.min(Math.max(requestedIndex, 0), steps.length - 1),
+    completedStepIds: steps.slice(0, requestedIndex).map((step) => step.id),
   }
   persistActiveGuide()
   renderCurrentGuideStep()
@@ -216,11 +243,15 @@ export function restoreGuideFromStorage(href = window.location.href): void {
     }
     activeHref = href
     activeLocale = persisted.locale
-    const urlStepIndex = stepIndexForHref(href)
+    activeGuideId = persisted.guideId
+    const urlStepIndex = startIndexForGuide(activeGuideId, href)
     const activeStepIndex = Math.max(persisted.state.activeStepIndex, urlStepIndex)
     activeGuideState = {
       activeStepIndex,
-      completedStepIds: completedStepIdsForIndex(activeStepIndex),
+      completedStepIds:
+        activeGuideId === HOME_INTRO_GUIDE_ID
+          ? homeIntroSteps.slice(0, activeStepIndex).map((step) => step.id)
+          : completedStepIdsForIndex(activeStepIndex),
     }
     persistActiveGuide()
     renderCurrentGuideStep()
@@ -229,6 +260,7 @@ export function restoreGuideFromStorage(href = window.location.href): void {
 
 export function resetGuideRuntimeForTests(): void {
   activeGuideState = null
+  activeGuideId = CONTENT_GUIDE_ID
   activeHref = window.location.href
   stopWatchingForS3ServiceResult()
   stopWatchingForBucketForm()
@@ -260,14 +292,16 @@ export function handleContentMessage(
 
   if (
     contentMessage?.type === 'AWS_COPILOT_START_GUIDE' &&
-    contentMessage.guideId === CONTENT_GUIDE_ID
+    isContentGuideId(contentMessage.guideId)
   ) {
     activeHref = href
+    activeGuideId = contentMessage.guideId
     applyLocale(contentMessage.locale)
-    const activeStepIndex = stepIndexForHref(href)
+    const activeStepIndex = startIndexForGuide(activeGuideId, href)
+    const steps = stepsForGuide(activeGuideId)
     activeGuideState = {
       activeStepIndex,
-      completedStepIds: completedStepIdsForIndex(activeStepIndex),
+      completedStepIds: steps.slice(0, activeStepIndex).map((step) => step.id),
     }
     persistActiveGuide()
     renderCurrentGuideStep()
@@ -277,9 +311,10 @@ export function handleContentMessage(
 
   if (
     contentMessage?.type === 'AWS_COPILOT_RENDER_GUIDE_STEP' &&
-    contentMessage.guideId === CONTENT_GUIDE_ID
+    isContentGuideId(contentMessage.guideId)
   ) {
     activeHref = href
+    activeGuideId = contentMessage.guideId
     applyLocale(contentMessage.locale)
     const requestedIndex =
       typeof contentMessage.activeStepIndex === 'number' ? contentMessage.activeStepIndex : 0
@@ -306,7 +341,7 @@ export function handleContentMessage(
           }),
           locale: activeLocale,
           activeGuideState,
-          stepCount: contentGuideSteps.length,
+          stepCount: activeGuideSteps().length,
         }),
       })
     } catch (error) {
