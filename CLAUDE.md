@@ -48,7 +48,11 @@ npm run test         # Vitest unit tests
 npm run test:watch   # Vitest watch mode
 npm run typecheck    # tsc --noEmit
 npm run test:browser # Playwright browser tests
-npm run check        # typecheck + test + build + test:browser
+npm run lint         # ESLint --max-warnings 0
+npm run format       # Prettier write
+npm run format:check # Prettier check
+npm run ci           # format:check + lint + test
+npm run check        # ci + typecheck + build + test:browser
 ```
 
 ## Load Extension in Chrome
@@ -62,6 +66,7 @@ Use non-production AWS account for manual testing.
 ## Key Constraints
 
 **Safety rules (never violate):**
+
 - No external network calls from the extension
 - No reading AWS credentials, secrets, or access keys
 - No automatic AWS action confirmation — user confirms every meaningful action
@@ -69,15 +74,18 @@ Use non-production AWS account for manual testing.
 - `isExternalUrlAllowed()` always returns `false` in MVP
 
 **Guide behavior:**
+
 - Step definitions in `s3IamGuide.ts` are language-independent (selectors, IDs, page patterns)
 - All user-facing copy uses translation keys resolved via `t(locale, key, values?)`
 - Fallback: missing `pt-BR` key falls back to `en`
 
 **i18n:**
+
 - `translationKeys('pt-BR')` must equal `translationKeys('en')` — enforced by test
 - New strings require entries in both `en.ts` and `pt-BR.ts`
 
 **Testing:**
+
 - Unit tests: guide state, i18n, content highlighting, safety rules
 - Browser tests: Playwright against local fixture pages (not real AWS)
 - Manual verification against real AWS Console required before release

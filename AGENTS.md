@@ -1,81 +1,78 @@
 # AGENTS.md — AWS Copilot Extension
 
-Instructions for agentic workers executing tasks in this repo.
+Chrome MV3 extension. Local S3+IAM walkthrough in the AWS Console. No backend.
 
-## Required Skills
-
-Before implementing any task, invoke:
-- `superpowers:executing-plans` when following the implementation plan
-- `superpowers:test-driven-development` when implementing features
-- `superpowers:subagent-driven-development` for parallel task execution
-
-## Implementation Plan
-
-Full plan: `docs/superpowers/plans/2026-04-15-aws-copilot-extension.md`
-Spec: `docs/superpowers/specs/2026-04-15-aws-copilot-extension-design.md`
-
-Tasks execute in order (each depends on prior):
-1. Project Scaffold
-2. Manifest And Build Output
-3. Localization Layer
-4. Guide Engine And S3/IAM Steps
-5. Content Script Page Detection And Highlights
-6. Safety Rules
-7. Panel To Content Script Integration
-8. Browser Fixtures And Flow Checks
-9. README And Final Verification
-
-## Verification Gates
-
-After each task, run the check specified in the plan step before committing. Never commit failing tests.
-
-Full suite: `npm run check` (typecheck + unit tests + build + browser tests).
-
-## Absolute Rules For Agents
-
-**Never violate these:**
-
-1. No external network calls — `isExternalUrlAllowed()` returns `false`, keep it that way
-2. No credential selectors in guide steps — all selectors pass through `assertSafeSelector()`
-3. No AWS API calls anywhere in the extension code
-4. No automatic AWS action — user must confirm every meaningful AWS operation
-5. Every new user-facing string needs entries in both `src/i18n/locales/en.ts` AND `src/i18n/locales/pt-BR.ts`
-6. Guide step definitions (`s3IamGuide.ts`) stay language-independent — no hardcoded strings, only translation keys
-
-## TDD Workflow
-
-Follow the plan's TDD sequence per task:
-1. Write failing test first
-2. Run test, verify it fails
-3. Implement to make it pass
-4. Run test, verify it passes
-5. Commit
-
-## Safety Check Before Commit
-
-Before any commit involving `highlight.ts` or new guide steps:
-- Confirm `assertSafeSelector()` wraps all selector usage
-- Confirm no `fetch()`, `XMLHttpRequest`, or `chrome.runtime.sendNativeMessage()` added
-- Confirm no credential-related field selectors in `s3IamGuide.ts`
-
-## Scope Control
-
-Do not implement beyond MVP spec:
-- No free-form chat
-- No AWS API integration
-- No backend
-- No cloud sync
-- No additional AWS workflows (Lambda, EC2, etc.)
-
-These are explicitly deferred to later phases.
-
-## Commit Style
+## Commands
 
 ```bash
-git commit -m "feat: <what>"   # new capability
-git commit -m "test: <what>"   # tests only
-git commit -m "fix: <what>"    # bug fix
-git commit -m "docs: <what>"   # docs only
+npm install
+npm run ci              # prettier --check + eslint --max-warnings 0 + vitest
+npm run check           # ci + tsc --noEmit + vite build + playwright
+npx playwright install chromium   # once on a clean machine
 ```
 
-Follow commit sequence from the plan (one commit per task).
+Load unpacked from `dist/` after `npm run build`. Pre-commit: Husky + lint-staged, then `npm test`.
+
+## Code style
+
+- Functions: 4–20 lines. Split if longer.
+- Files: under 500 lines (target 200–300). Split by responsibility before adding logic.
+- One thing per function, one responsibility per module (SRP).
+- Names: specific and unique. Avoid `data`, `handler`, `Manager`, `utils`.
+- Types: explicit. No `any` on public surfaces.
+- No duplication. Extract shared logic.
+- Early returns. Max 2 indentation levels for control flow.
+- Exception messages include the received value and expected shape.
+- Formatter is Prettier (`semi: false`, `singleQuote`, `printWidth: 100`). Do not bikeshed style.
+
+## Comments
+
+- Keep WHY / provenance comments. Do not strip them on refactor.
+- Write WHY, not WHAT.
+- Public functions: intent + one usage example when the contract is non-obvious.
+
+## Tests
+
+- One command: `npm run ci`.
+- New function → test. Bugfix → regression test.
+- Content-script tests import `handleContentMessage`, `restoreGuideFromStorage`, `resetGuideRuntimeForTests` from `src/content/main.ts` (stable public API; `main.ts` re-exports `guideSession.ts`).
+- Sensitive-selector errors must keep the exact string `Refusing to target sensitive AWS fields`.
+- F.I.R.S.T. Named fakes over inline stubs for Chrome APIs (`chrome.tabs`, `chrome.storage`, `chrome.scripting`).
+
+## Layout
+
+```
+src/content/     content script: detect page, overlay, guide session, debug markdown
+src/guides/      panel guide engine + s3IamGuide (i18n keys, language-independent)
+src/panel/       React popup: App, idle/active panels, chrome.tabs messaging
+src/safety/      assertSafeSelector / assertSafeElement / isExternalUrlAllowed
+src/i18n/        en + pt-BR. Every user-facing string in BOTH locale files
+tests/browser/   Playwright fixtures
+```
+
+## Safety (never violate)
+
+- `isExternalUrlAllowed()` stays `false`. No `fetch`, `XMLHttpRequest`, or `chrome.runtime.sendNativeMessage`.
+- No AWS API calls. No credentials. No automatic AWS action — the user confirms.
+- Every selector goes through `assertSafeSelector()` before `querySelector`.
+- Debug extraction uses `resolveHighlightTargetForDiagnostics` (does not clear the overlay). `resolveHighlightTarget` clears it.
+- `extractDebugContextFromPage` in `src/panel/pageDebugMarkdown.ts` is injected via `chrome.scripting.executeScript`. It must close over nothing.
+
+## Guide catalogs
+
+Two catalogs share step ids `objective | bucket | security | iamPolicy | review` and guide id `s3-iam-app-access`:
+
+- `src/guides/s3IamGuide.ts` — panel. Translation keys only.
+- `src/content/contentGuideCatalog.ts` — content overlay. Inline `{en, pt-BR}` copy (isolated world, no panel i18n bundle).
+
+Keep ids in lockstep. Do not add Lambda/EC2 workflows, chat, backend, or cloud sync.
+
+## Messages (content script)
+
+`AWS_COPILOT_HIGHLIGHT | START_GUIDE | RENDER_GUIDE_STEP | DETECT_PAGE | EXTRACT_DEBUG_CONTEXT | GET_GUIDE_SNAPSHOT`.
+
+Console `MutationObserver`s take callbacks (`watchForS3ServiceResult(onFound)`). Do not import `guideSession` from `consoleTargets`.
+
+## Out of scope
+
+No free-form chat, AWS SDK, backend, cloud sync, extra AWS products.

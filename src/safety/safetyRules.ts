@@ -4,16 +4,16 @@ const sensitiveSelectorPatterns = [
   /accesskey/i,
   /access-key/i,
   /credential/i,
-  /token/i
-];
+  /token/i,
+]
 
 export function isSensitiveSelector(selector: string): boolean {
-  return sensitiveSelectorPatterns.some((pattern) => pattern.test(selector));
+  return sensitiveSelectorPatterns.some((pattern) => pattern.test(selector))
 }
 
 export function assertSafeSelector(selector: string): void {
   if (isSensitiveSelector(selector)) {
-    throw new Error('Refusing to target sensitive AWS fields');
+    throw new Error('Refusing to target sensitive AWS fields')
   }
 }
 
@@ -24,18 +24,18 @@ export function isSensitiveElement(element: HTMLElement): boolean {
     element.id,
     element.getAttribute('aria-label'),
     element.getAttribute('autocomplete'),
-    element.textContent
-  ];
+    element.textContent,
+  ]
 
-  return elementValues.some((value) => value !== null && isSensitiveSelector(value));
+  return elementValues.some((value) => value !== null && isSensitiveSelector(value))
 }
 
 export function assertSafeElement(element: HTMLElement): void {
   if (isSensitiveElement(element)) {
-    throw new Error('Refusing to target sensitive AWS fields');
+    throw new Error('Refusing to target sensitive AWS fields')
   }
 }
 
 export function isExternalUrlAllowed(_url: string): boolean {
-  return false;
+  return false
 }

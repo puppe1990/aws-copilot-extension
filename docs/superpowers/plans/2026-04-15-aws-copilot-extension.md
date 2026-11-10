@@ -45,6 +45,7 @@
 ### Task 1: Project Scaffold
 
 **Files:**
+
 - Create: `package.json`
 - Create: `tsconfig.json`
 - Create: `vite.config.ts`
@@ -124,9 +125,9 @@ Write `tsconfig.json`:
 Write `vite.config.ts`:
 
 ```ts
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import { resolve } from 'node:path';
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import { resolve } from 'node:path'
 
 export default defineConfig({
   plugins: [react()],
@@ -136,21 +137,21 @@ export default defineConfig({
     rollupOptions: {
       input: {
         panel: resolve(__dirname, 'index.html'),
-      content: resolve(__dirname, 'src/content/main.ts')
+        content: resolve(__dirname, 'src/content/main.ts'),
       },
       output: {
         entryFileNames: '[name].js',
         chunkFileNames: 'assets/[name]-[hash].js',
-        assetFileNames: 'assets/[name]-[hash][extname]'
-      }
-    }
+        assetFileNames: 'assets/[name]-[hash][extname]',
+      },
+    },
   },
   test: {
     environment: 'jsdom',
     globals: true,
-    setupFiles: ['src/test/setup.ts']
-  }
-});
+    setupFiles: ['src/test/setup.ts'],
+  },
+})
 ```
 
 - [ ] **Step 4: Create test setup**
@@ -158,7 +159,7 @@ export default defineConfig({
 Write `src/test/setup.ts`:
 
 ```ts
-import '@testing-library/jest-dom/vitest';
+import '@testing-library/jest-dom/vitest'
 ```
 
 - [ ] **Step 5: Create panel HTML and initial React app**
@@ -183,15 +184,15 @@ Write `index.html`:
 Write `src/panel/main.tsx`:
 
 ```tsx
-import React from 'react';
-import { createRoot } from 'react-dom/client';
-import { App } from './App';
+import React from 'react'
+import { createRoot } from 'react-dom/client'
+import { App } from './App'
 
 createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <App />
-  </React.StrictMode>
-);
+  </React.StrictMode>,
+)
 ```
 
 Write `src/panel/App.tsx`:
@@ -203,7 +204,7 @@ export function App() {
       <h1>AWS Copilot</h1>
       <p>Create an S3 bucket and IAM policy for app access.</p>
     </main>
-  );
+  )
 }
 ```
 
@@ -212,13 +213,13 @@ export function App() {
 Write `src/panel/App.test.tsx`:
 
 ```tsx
-import { render, screen } from '@testing-library/react';
-import { App } from './App';
+import { render, screen } from '@testing-library/react'
+import { App } from './App'
 
 it('renders the extension name', () => {
-  render(<App />);
-  expect(screen.getByRole('heading', { name: 'AWS Copilot' })).toBeInTheDocument();
-});
+  render(<App />)
+  expect(screen.getByRole('heading', { name: 'AWS Copilot' })).toBeInTheDocument()
+})
 ```
 
 - [ ] **Step 7: Install dependencies**
@@ -245,6 +246,7 @@ git commit -m "feat: scaffold extension app"
 ### Task 2: Manifest And Build Output
 
 **Files:**
+
 - Create: `public/manifest.json`
 - Modify: `vite.config.ts`
 - Modify: `package.json`
@@ -280,9 +282,9 @@ Write `public/manifest.json`:
 Modify `vite.config.ts` to include `publicDir: 'public'`:
 
 ```ts
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import { resolve } from 'node:path';
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import { resolve } from 'node:path'
 
 export default defineConfig({
   plugins: [react()],
@@ -293,21 +295,21 @@ export default defineConfig({
     rollupOptions: {
       input: {
         panel: resolve(__dirname, 'index.html'),
-        content: resolve(__dirname, 'src/content/main.ts')
+        content: resolve(__dirname, 'src/content/main.ts'),
       },
       output: {
         entryFileNames: '[name].js',
         chunkFileNames: 'assets/[name]-[hash].js',
-        assetFileNames: 'assets/[name]-[hash][extname]'
-      }
-    }
+        assetFileNames: 'assets/[name]-[hash][extname]',
+      },
+    },
   },
   test: {
     environment: 'jsdom',
     globals: true,
-    setupFiles: ['src/test/setup.ts']
-  }
-});
+    setupFiles: ['src/test/setup.ts'],
+  },
+})
 ```
 
 - [ ] **Step 3: Add content entry stub**
@@ -315,7 +317,7 @@ export default defineConfig({
 Write `src/content/main.ts`:
 
 ```ts
-console.info('[AWS Copilot] content script loaded');
+console.info('[AWS Copilot] content script loaded')
 ```
 
 - [ ] **Step 4: Build and inspect output**
@@ -336,6 +338,7 @@ git commit -m "feat: add chrome extension manifest"
 ### Task 3: Localization Layer
 
 **Files:**
+
 - Create: `src/i18n/locales/en.ts`
 - Create: `src/i18n/locales/pt-BR.ts`
 - Create: `src/i18n/index.ts`
@@ -347,27 +350,29 @@ git commit -m "feat: add chrome extension manifest"
 Write `src/i18n/i18n.test.ts`:
 
 ```ts
-import { detectLocale, t, translationKeys } from './index';
+import { detectLocale, t, translationKeys } from './index'
 
 it('detects pt-BR from browser language', () => {
-  expect(detectLocale(['pt-BR', 'en-US'])).toBe('pt-BR');
-});
+  expect(detectLocale(['pt-BR', 'en-US'])).toBe('pt-BR')
+})
 
 it('detects en as fallback for unsupported language', () => {
-  expect(detectLocale(['fr-FR'])).toBe('en');
-});
+  expect(detectLocale(['fr-FR'])).toBe('en')
+})
 
 it('falls back to English when a locale key is missing', () => {
-  expect(t('pt-BR', 'app.title')).toBe('AWS Copilot');
-});
+  expect(t('pt-BR', 'app.title')).toBe('AWS Copilot')
+})
 
 it('interpolates values in localized strings', () => {
-  expect(t('en', 'guide.s3Iam.stepBucketName.body', { bucketName: 'my-app-uploads' })).toContain('my-app-uploads');
-});
+  expect(t('en', 'guide.s3Iam.stepBucketName.body', { bucketName: 'my-app-uploads' })).toContain(
+    'my-app-uploads',
+  )
+})
 
 it('has matching translation keys for en and pt-BR', () => {
-  expect(translationKeys('pt-BR')).toEqual(translationKeys('en'));
-});
+  expect(translationKeys('pt-BR')).toEqual(translationKeys('en'))
+})
 ```
 
 - [ ] **Step 2: Run test to verify failure**
@@ -388,28 +393,33 @@ export const en = {
   'guide.start': 'Start guide',
   'guide.s3Iam.title': 'S3 bucket + IAM policy',
   'guide.s3Iam.stepObjective.title': 'Choose the objective',
-  'guide.s3Iam.stepObjective.body': 'This guide creates app access to S3 without opening the bucket publicly.',
+  'guide.s3Iam.stepObjective.body':
+    'This guide creates app access to S3 without opening the bucket publicly.',
   'guide.s3Iam.stepBucketName.title': 'Create the bucket',
-  'guide.s3Iam.stepBucketName.body': 'Use a globally unique bucket name such as {bucketName}. Do not include secrets or customer data in the name.',
+  'guide.s3Iam.stepBucketName.body':
+    'Use a globally unique bucket name such as {bucketName}. Do not include secrets or customer data in the name.',
   'guide.s3Iam.stepSecurity.title': 'Keep public access blocked',
-  'guide.s3Iam.stepSecurity.body': 'Block public access unless you have a specific reviewed reason to make objects public.',
+  'guide.s3Iam.stepSecurity.body':
+    'Block public access unless you have a specific reviewed reason to make objects public.',
   'guide.s3Iam.stepIamPolicy.title': 'Create a least-privilege IAM policy',
-  'guide.s3Iam.stepIamPolicy.body': 'Scope the policy to this bucket and only the S3 actions your app needs.',
+  'guide.s3Iam.stepIamPolicy.body':
+    'Scope the policy to this bucket and only the S3 actions your app needs.',
   'guide.s3Iam.stepReview.title': 'Review the result',
-  'guide.s3Iam.stepReview.body': 'Confirm the bucket is private and the IAM policy references only the intended bucket.',
+  'guide.s3Iam.stepReview.body':
+    'Confirm the bucket is private and the IAM policy references only the intended bucket.',
   'action.copy': 'Copy suggestion',
   'action.fill': 'Fill field',
   'action.done': 'Mark done',
   'status.localOnly': 'Runs locally. No AWS API calls. No data sent to servers.',
   'error.notAws': 'Open the AWS Console to use this guide.',
-  'error.wrongPage': 'This step needs a different AWS Console page.'
-} as const;
+  'error.wrongPage': 'This step needs a different AWS Console page.',
+} as const
 ```
 
 Write `src/i18n/locales/pt-BR.ts`:
 
 ```ts
-import type { TranslationKeyMap } from '../index';
+import type { TranslationKeyMap } from '../index'
 
 export const ptBR: TranslationKeyMap = {
   'app.title': 'AWS Copilot',
@@ -418,22 +428,28 @@ export const ptBR: TranslationKeyMap = {
   'guide.start': 'Iniciar guia',
   'guide.s3Iam.title': 'Bucket S3 + política IAM',
   'guide.s3Iam.stepObjective.title': 'Escolha o objetivo',
-  'guide.s3Iam.stepObjective.body': 'Este guia cria acesso de aplicação ao S3 sem abrir o bucket publicamente.',
+  'guide.s3Iam.stepObjective.body':
+    'Este guia cria acesso de aplicação ao S3 sem abrir o bucket publicamente.',
   'guide.s3Iam.stepBucketName.title': 'Crie o bucket',
-  'guide.s3Iam.stepBucketName.body': 'Use um nome globalmente único, como {bucketName}. Não inclua segredos ou dados de clientes no nome.',
+  'guide.s3Iam.stepBucketName.body':
+    'Use um nome globalmente único, como {bucketName}. Não inclua segredos ou dados de clientes no nome.',
   'guide.s3Iam.stepSecurity.title': 'Mantenha o acesso público bloqueado',
-  'guide.s3Iam.stepSecurity.body': 'Bloqueie acesso público, exceto quando houver um motivo específico e revisado para publicar objetos.',
+  'guide.s3Iam.stepSecurity.body':
+    'Bloqueie acesso público, exceto quando houver um motivo específico e revisado para publicar objetos.',
   'guide.s3Iam.stepIamPolicy.title': 'Crie uma política IAM de privilégio mínimo',
-  'guide.s3Iam.stepIamPolicy.body': 'Restrinja a política a este bucket e apenas às ações S3 que a aplicação precisa.',
+  'guide.s3Iam.stepIamPolicy.body':
+    'Restrinja a política a este bucket e apenas às ações S3 que a aplicação precisa.',
   'guide.s3Iam.stepReview.title': 'Revise o resultado',
-  'guide.s3Iam.stepReview.body': 'Confirme que o bucket está privado e que a política IAM referencia apenas o bucket esperado.',
+  'guide.s3Iam.stepReview.body':
+    'Confirme que o bucket está privado e que a política IAM referencia apenas o bucket esperado.',
   'action.copy': 'Copiar sugestão',
   'action.fill': 'Preencher campo',
   'action.done': 'Marcar como concluído',
-  'status.localOnly': 'Roda localmente. Sem chamadas à API da AWS. Nenhum dado é enviado a servidores.',
+  'status.localOnly':
+    'Roda localmente. Sem chamadas à API da AWS. Nenhum dado é enviado a servidores.',
   'error.notAws': 'Abra o Console da AWS para usar este guia.',
-  'error.wrongPage': 'Esta etapa precisa de outra página do Console da AWS.'
-};
+  'error.wrongPage': 'Esta etapa precisa de outra página do Console da AWS.',
+}
 ```
 
 - [ ] **Step 4: Add localization implementation**
@@ -441,37 +457,41 @@ export const ptBR: TranslationKeyMap = {
 Write `src/i18n/index.ts`:
 
 ```ts
-import { en } from './locales/en';
+import { en } from './locales/en'
 
-export type Locale = 'en' | 'pt-BR';
-export type TranslationKey = keyof typeof en;
-export type TranslationKeyMap = Record<TranslationKey, string>;
+export type Locale = 'en' | 'pt-BR'
+export type TranslationKey = keyof typeof en
+export type TranslationKeyMap = Record<TranslationKey, string>
 
-import { ptBR } from './locales/pt-BR';
+import { ptBR } from './locales/pt-BR'
 
 const dictionaries: Record<Locale, TranslationKeyMap> = {
   en,
-  'pt-BR': ptBR
-};
-
-export function detectLocale(languages: readonly string[] = navigator.languages): Locale {
-  const normalized = languages.map((language) => language.toLowerCase());
-  if (normalized.some((language) => language === 'pt-br' || language.startsWith('pt-'))) {
-    return 'pt-BR';
-  }
-  return 'en';
+  'pt-BR': ptBR,
 }
 
-export function t(locale: Locale, key: TranslationKey, values: Record<string, string> = {}): string {
-  const template = dictionaries[locale][key] ?? dictionaries.en[key];
+export function detectLocale(languages: readonly string[] = navigator.languages): Locale {
+  const normalized = languages.map((language) => language.toLowerCase())
+  if (normalized.some((language) => language === 'pt-br' || language.startsWith('pt-'))) {
+    return 'pt-BR'
+  }
+  return 'en'
+}
+
+export function t(
+  locale: Locale,
+  key: TranslationKey,
+  values: Record<string, string> = {},
+): string {
+  const template = dictionaries[locale][key] ?? dictionaries.en[key]
   return Object.entries(values).reduce(
     (message, [name, value]) => message.replaceAll(`{${name}}`, value),
-    template
-  );
+    template,
+  )
 }
 
 export function translationKeys(locale: Locale): string[] {
-  return Object.keys(dictionaries[locale]).sort();
+  return Object.keys(dictionaries[locale]).sort()
 }
 ```
 
@@ -480,12 +500,12 @@ export function translationKeys(locale: Locale): string[] {
 Modify `src/panel/App.tsx`:
 
 ```tsx
-import { useMemo, useState } from 'react';
-import { detectLocale, type Locale, t } from '../i18n';
+import { useMemo, useState } from 'react'
+import { detectLocale, type Locale, t } from '../i18n'
 
 export function App() {
-  const initialLocale = useMemo(() => detectLocale(), []);
-  const [locale, setLocale] = useState<Locale>(initialLocale);
+  const initialLocale = useMemo(() => detectLocale(), [])
+  const [locale, setLocale] = useState<Locale>(initialLocale)
 
   return (
     <main>
@@ -500,7 +520,7 @@ export function App() {
       <p>{t(locale, 'app.subtitle')}</p>
       <p>{t(locale, 'status.localOnly')}</p>
     </main>
-  );
+  )
 }
 ```
 
@@ -522,6 +542,7 @@ git commit -m "feat: add english and portuguese localization"
 ### Task 4: Guide Engine And S3/IAM Steps
 
 **Files:**
+
 - Create: `src/guides/s3IamGuide.ts`
 - Create: `src/guides/guideEngine.ts`
 - Create: `src/guides/guideEngine.test.ts`
@@ -532,33 +553,33 @@ git commit -m "feat: add english and portuguese localization"
 Write `src/guides/guideEngine.test.ts`:
 
 ```ts
-import { createGuideState, currentStep, goNext, goPrevious, markDone } from './guideEngine';
-import { s3IamGuide } from './s3IamGuide';
+import { createGuideState, currentStep, goNext, goPrevious, markDone } from './guideEngine'
+import { s3IamGuide } from './s3IamGuide'
 
 it('starts at the first guide step', () => {
-  const state = createGuideState(s3IamGuide);
-  expect(currentStep(s3IamGuide, state).id).toBe('objective');
-});
+  const state = createGuideState(s3IamGuide)
+  expect(currentStep(s3IamGuide, state).id).toBe('objective')
+})
 
 it('moves forward and backward through steps', () => {
-  const state = createGuideState(s3IamGuide);
-  const next = goNext(s3IamGuide, state);
-  expect(currentStep(s3IamGuide, next).id).toBe('bucket');
-  expect(currentStep(s3IamGuide, goPrevious(s3IamGuide, next)).id).toBe('objective');
-});
+  const state = createGuideState(s3IamGuide)
+  const next = goNext(s3IamGuide, state)
+  expect(currentStep(s3IamGuide, next).id).toBe('bucket')
+  expect(currentStep(s3IamGuide, goPrevious(s3IamGuide, next)).id).toBe('objective')
+})
 
 it('does not move beyond final step', () => {
-  let state = createGuideState(s3IamGuide);
+  let state = createGuideState(s3IamGuide)
   for (let index = 0; index < 10; index += 1) {
-    state = goNext(s3IamGuide, state);
+    state = goNext(s3IamGuide, state)
   }
-  expect(currentStep(s3IamGuide, state).id).toBe('review');
-});
+  expect(currentStep(s3IamGuide, state).id).toBe('review')
+})
 
 it('tracks completed step ids', () => {
-  const state = markDone(createGuideState(s3IamGuide), 'bucket');
-  expect(state.completedStepIds).toContain('bucket');
-});
+  const state = markDone(createGuideState(s3IamGuide), 'bucket')
+  expect(state.completedStepIds).toContain('bucket')
+})
 ```
 
 - [ ] **Step 2: Run test to verify failure**
@@ -572,24 +593,24 @@ Expected: FAIL because guide modules do not exist.
 Write `src/guides/s3IamGuide.ts`:
 
 ```ts
-import type { TranslationKey } from '../i18n';
+import type { TranslationKey } from '../i18n'
 
-export type GuideStepId = 'objective' | 'bucket' | 'security' | 'iamPolicy' | 'review';
+export type GuideStepId = 'objective' | 'bucket' | 'security' | 'iamPolicy' | 'review'
 
 export type GuideStep = {
-  id: GuideStepId;
-  titleKey: TranslationKey;
-  bodyKey: TranslationKey;
-  expectedPage: 'anyAws' | 's3CreateBucket' | 's3BucketSettings' | 'iamCreatePolicy';
-  highlightSelector?: string;
-  suggestedValues?: Record<string, string>;
-};
+  id: GuideStepId
+  titleKey: TranslationKey
+  bodyKey: TranslationKey
+  expectedPage: 'anyAws' | 's3CreateBucket' | 's3BucketSettings' | 'iamCreatePolicy'
+  highlightSelector?: string
+  suggestedValues?: Record<string, string>
+}
 
 export type GuideDefinition = {
-  id: 's3-iam-app-access';
-  titleKey: TranslationKey;
-  steps: GuideStep[];
-};
+  id: 's3-iam-app-access'
+  titleKey: TranslationKey
+  steps: GuideStep[]
+}
 
 export const s3IamGuide: GuideDefinition = {
   id: 's3-iam-app-access',
@@ -599,40 +620,41 @@ export const s3IamGuide: GuideDefinition = {
       id: 'objective',
       titleKey: 'guide.s3Iam.stepObjective.title',
       bodyKey: 'guide.s3Iam.stepObjective.body',
-      expectedPage: 'anyAws'
+      expectedPage: 'anyAws',
     },
     {
       id: 'bucket',
       titleKey: 'guide.s3Iam.stepBucketName.title',
       bodyKey: 'guide.s3Iam.stepBucketName.body',
       expectedPage: 's3CreateBucket',
-      highlightSelector: '[data-testid="bucket-name"], input[name="bucketName"], input[aria-label*="Bucket"]',
+      highlightSelector:
+        '[data-testid="bucket-name"], input[name="bucketName"], input[aria-label*="Bucket"]',
       suggestedValues: {
-        bucketName: 'my-app-uploads-prod'
-      }
+        bucketName: 'my-app-uploads-prod',
+      },
     },
     {
       id: 'security',
       titleKey: 'guide.s3Iam.stepSecurity.title',
       bodyKey: 'guide.s3Iam.stepSecurity.body',
       expectedPage: 's3BucketSettings',
-      highlightSelector: '[data-testid*="block-public"], input[type="checkbox"]'
+      highlightSelector: '[data-testid*="block-public"], input[type="checkbox"]',
     },
     {
       id: 'iamPolicy',
       titleKey: 'guide.s3Iam.stepIamPolicy.title',
       bodyKey: 'guide.s3Iam.stepIamPolicy.body',
       expectedPage: 'iamCreatePolicy',
-      highlightSelector: 'textarea, [data-testid*="policy"], [role="textbox"]'
+      highlightSelector: 'textarea, [data-testid*="policy"], [role="textbox"]',
     },
     {
       id: 'review',
       titleKey: 'guide.s3Iam.stepReview.title',
       bodyKey: 'guide.s3Iam.stepReview.body',
-      expectedPage: 'anyAws'
-    }
-  ]
-};
+      expectedPage: 'anyAws',
+    },
+  ],
+}
 ```
 
 - [ ] **Step 4: Add guide engine**
@@ -640,47 +662,47 @@ export const s3IamGuide: GuideDefinition = {
 Write `src/guides/guideEngine.ts`:
 
 ```ts
-import type { GuideDefinition, GuideStep, GuideStepId } from './s3IamGuide';
+import type { GuideDefinition, GuideStep, GuideStepId } from './s3IamGuide'
 
 export type GuideState = {
-  activeStepIndex: number;
-  completedStepIds: GuideStepId[];
-};
+  activeStepIndex: number
+  completedStepIds: GuideStepId[]
+}
 
 export function createGuideState(_guide: GuideDefinition): GuideState {
   return {
     activeStepIndex: 0,
-    completedStepIds: []
-  };
+    completedStepIds: [],
+  }
 }
 
 export function currentStep(guide: GuideDefinition, state: GuideState): GuideStep {
-  return guide.steps[state.activeStepIndex];
+  return guide.steps[state.activeStepIndex]
 }
 
 export function goNext(guide: GuideDefinition, state: GuideState): GuideState {
   return {
     ...state,
-    activeStepIndex: Math.min(state.activeStepIndex + 1, guide.steps.length - 1)
-  };
+    activeStepIndex: Math.min(state.activeStepIndex + 1, guide.steps.length - 1),
+  }
 }
 
 export function goPrevious(_guide: GuideDefinition, state: GuideState): GuideState {
   return {
     ...state,
-    activeStepIndex: Math.max(state.activeStepIndex - 1, 0)
-  };
+    activeStepIndex: Math.max(state.activeStepIndex - 1, 0),
+  }
 }
 
 export function markDone(state: GuideState, stepId: GuideStepId): GuideState {
   if (state.completedStepIds.includes(stepId)) {
-    return state;
+    return state
   }
 
   return {
     ...state,
-    completedStepIds: [...state.completedStepIds, stepId]
-  };
+    completedStepIds: [...state.completedStepIds, stepId],
+  }
 }
 ```
 
@@ -689,17 +711,17 @@ export function markDone(state: GuideState, stepId: GuideStepId): GuideState {
 Modify `src/panel/App.tsx`:
 
 ```tsx
-import { useMemo, useState } from 'react';
-import { createGuideState, currentStep, goNext, markDone } from '../guides/guideEngine';
-import { s3IamGuide } from '../guides/s3IamGuide';
-import { detectLocale, type Locale, t } from '../i18n';
+import { useMemo, useState } from 'react'
+import { createGuideState, currentStep, goNext, markDone } from '../guides/guideEngine'
+import { s3IamGuide } from '../guides/s3IamGuide'
+import { detectLocale, type Locale, t } from '../i18n'
 
 export function App() {
-  const initialLocale = useMemo(() => detectLocale(), []);
-  const [locale, setLocale] = useState<Locale>(initialLocale);
-  const [guideState, setGuideState] = useState(() => createGuideState(s3IamGuide));
-  const step = currentStep(s3IamGuide, guideState);
-  const values = step.suggestedValues ?? {};
+  const initialLocale = useMemo(() => detectLocale(), [])
+  const [locale, setLocale] = useState<Locale>(initialLocale)
+  const [guideState, setGuideState] = useState(() => createGuideState(s3IamGuide))
+  const step = currentStep(s3IamGuide, guideState)
+  const values = step.suggestedValues ?? {}
 
   return (
     <main>
@@ -721,14 +743,14 @@ export function App() {
         <button
           type="button"
           onClick={() => {
-            setGuideState((state) => goNext(s3IamGuide, markDone(state, step.id)));
+            setGuideState((state) => goNext(s3IamGuide, markDone(state, step.id)))
           }}
         >
           {t(locale, 'action.done')}
         </button>
       </section>
     </main>
-  );
+  )
 }
 ```
 
@@ -750,6 +772,7 @@ git commit -m "feat: add curated s3 iam guide"
 ### Task 5: Content Script Page Detection And Highlights
 
 **Files:**
+
 - Create: `src/content/pageDetection.ts`
 - Create: `src/content/highlight.ts`
 - Create: `src/content/content.test.ts`
@@ -760,31 +783,35 @@ git commit -m "feat: add curated s3 iam guide"
 Write `src/content/content.test.ts`:
 
 ```ts
-import { clearHighlight, highlightElement } from './highlight';
-import { detectAwsPage } from './pageDetection';
+import { clearHighlight, highlightElement } from './highlight'
+import { detectAwsPage } from './pageDetection'
 
 it('detects non-AWS pages', () => {
-  expect(detectAwsPage('https://example.com')).toEqual({ kind: 'notAws' });
-});
+  expect(detectAwsPage('https://example.com')).toEqual({ kind: 'notAws' })
+})
 
 it('detects AWS S3 pages', () => {
-  expect(detectAwsPage('https://s3.console.aws.amazon.com/s3/bucket/create')).toEqual({ kind: 's3' });
-});
+  expect(detectAwsPage('https://s3.console.aws.amazon.com/s3/bucket/create')).toEqual({
+    kind: 's3',
+  })
+})
 
 it('detects AWS IAM pages', () => {
-  expect(detectAwsPage('https://us-east-1.console.aws.amazon.com/iam/home#/policies$new')).toEqual({ kind: 'iam' });
-});
+  expect(detectAwsPage('https://us-east-1.console.aws.amazon.com/iam/home#/policies$new')).toEqual({
+    kind: 'iam',
+  })
+})
 
 it('adds and clears a highlight overlay', () => {
-  document.body.innerHTML = '<input id="bucket" />';
-  const target = document.getElementById('bucket') as HTMLElement;
+  document.body.innerHTML = '<input id="bucket" />'
+  const target = document.getElementById('bucket') as HTMLElement
 
-  highlightElement(target);
-  expect(document.querySelector('[data-aws-copilot-highlight]')).toBeInTheDocument();
+  highlightElement(target)
+  expect(document.querySelector('[data-aws-copilot-highlight]')).toBeInTheDocument()
 
-  clearHighlight();
-  expect(document.querySelector('[data-aws-copilot-highlight]')).not.toBeInTheDocument();
-});
+  clearHighlight()
+  expect(document.querySelector('[data-aws-copilot-highlight]')).not.toBeInTheDocument()
+})
 ```
 
 - [ ] **Step 2: Run test to verify failure**
@@ -798,26 +825,22 @@ Expected: FAIL because content helpers do not exist.
 Write `src/content/pageDetection.ts`:
 
 ```ts
-export type AwsPage =
-  | { kind: 'notAws' }
-  | { kind: 'awsUnknown' }
-  | { kind: 's3' }
-  | { kind: 'iam' };
+export type AwsPage = { kind: 'notAws' } | { kind: 'awsUnknown' } | { kind: 's3' } | { kind: 'iam' }
 
 export function detectAwsPage(url: string): AwsPage {
-  const parsed = new URL(url);
+  const parsed = new URL(url)
   if (!parsed.hostname.endsWith('console.aws.amazon.com')) {
-    return { kind: 'notAws' };
+    return { kind: 'notAws' }
   }
 
-  const fullUrl = url.toLowerCase();
+  const fullUrl = url.toLowerCase()
   if (fullUrl.includes('/s3')) {
-    return { kind: 's3' };
+    return { kind: 's3' }
   }
   if (fullUrl.includes('/iam')) {
-    return { kind: 'iam' };
+    return { kind: 'iam' }
   }
-  return { kind: 'awsUnknown' };
+  return { kind: 'awsUnknown' }
 }
 ```
 
@@ -826,39 +849,39 @@ export function detectAwsPage(url: string): AwsPage {
 Write `src/content/highlight.ts`:
 
 ```ts
-const HIGHLIGHT_ATTRIBUTE = 'data-aws-copilot-highlight';
+const HIGHLIGHT_ATTRIBUTE = 'data-aws-copilot-highlight'
 
 export function clearHighlight(): void {
-  document.querySelectorAll(`[${HIGHLIGHT_ATTRIBUTE}]`).forEach((element) => element.remove());
+  document.querySelectorAll(`[${HIGHLIGHT_ATTRIBUTE}]`).forEach((element) => element.remove())
 }
 
 export function highlightElement(target: HTMLElement): void {
-  clearHighlight();
-  const rect = target.getBoundingClientRect();
-  const overlay = document.createElement('div');
-  overlay.setAttribute(HIGHLIGHT_ATTRIBUTE, 'true');
-  overlay.style.position = 'fixed';
-  overlay.style.left = `${rect.left - 4}px`;
-  overlay.style.top = `${rect.top - 4}px`;
-  overlay.style.width = `${rect.width + 8}px`;
-  overlay.style.height = `${rect.height + 8}px`;
-  overlay.style.border = '3px solid #10b981';
-  overlay.style.borderRadius = '6px';
-  overlay.style.pointerEvents = 'none';
-  overlay.style.zIndex = '2147483647';
-  overlay.style.boxShadow = '0 0 0 4px rgba(16, 185, 129, 0.2)';
-  document.body.appendChild(overlay);
+  clearHighlight()
+  const rect = target.getBoundingClientRect()
+  const overlay = document.createElement('div')
+  overlay.setAttribute(HIGHLIGHT_ATTRIBUTE, 'true')
+  overlay.style.position = 'fixed'
+  overlay.style.left = `${rect.left - 4}px`
+  overlay.style.top = `${rect.top - 4}px`
+  overlay.style.width = `${rect.width + 8}px`
+  overlay.style.height = `${rect.height + 8}px`
+  overlay.style.border = '3px solid #10b981'
+  overlay.style.borderRadius = '6px'
+  overlay.style.pointerEvents = 'none'
+  overlay.style.zIndex = '2147483647'
+  overlay.style.boxShadow = '0 0 0 4px rgba(16, 185, 129, 0.2)'
+  document.body.appendChild(overlay)
 }
 
 export function highlightSelector(selector: string): boolean {
-  const target = document.querySelector(selector);
+  const target = document.querySelector(selector)
   if (!(target instanceof HTMLElement)) {
-    clearHighlight();
-    return false;
+    clearHighlight()
+    return false
   }
 
-  highlightElement(target);
-  return true;
+  highlightElement(target)
+  return true
 }
 ```
 
@@ -867,25 +890,25 @@ export function highlightSelector(selector: string): boolean {
 Modify `src/content/main.ts`:
 
 ```ts
-import { highlightSelector } from './highlight';
-import { detectAwsPage } from './pageDetection';
+import { highlightSelector } from './highlight'
+import { detectAwsPage } from './pageDetection'
 
-console.info('[AWS Copilot] content script loaded', detectAwsPage(window.location.href));
+console.info('[AWS Copilot] content script loaded', detectAwsPage(window.location.href))
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === 'AWS_COPILOT_HIGHLIGHT' && typeof message.selector === 'string') {
-    const found = highlightSelector(message.selector);
-    sendResponse({ ok: found });
-    return true;
+    const found = highlightSelector(message.selector)
+    sendResponse({ ok: found })
+    return true
   }
 
   if (message?.type === 'AWS_COPILOT_DETECT_PAGE') {
-    sendResponse({ ok: true, page: detectAwsPage(window.location.href) });
-    return true;
+    sendResponse({ ok: true, page: detectAwsPage(window.location.href) })
+    return true
   }
 
-  return false;
-});
+  return false
+})
 ```
 
 - [ ] **Step 6: Run content tests**
@@ -906,6 +929,7 @@ git commit -m "feat: add aws console page detection"
 ### Task 6: Safety Rules
 
 **Files:**
+
 - Create: `src/safety/safetyRules.ts`
 - Create: `src/safety/safetyRules.test.ts`
 - Modify: `src/content/highlight.ts`
@@ -915,25 +939,27 @@ git commit -m "feat: add aws console page detection"
 Write `src/safety/safetyRules.test.ts`:
 
 ```ts
-import { assertSafeSelector, isSensitiveSelector, isExternalUrlAllowed } from './safetyRules';
+import { assertSafeSelector, isSensitiveSelector, isExternalUrlAllowed } from './safetyRules'
 
 it('blocks sensitive credential selectors', () => {
-  expect(isSensitiveSelector('input[name="secretAccessKey"]')).toBe(true);
-  expect(isSensitiveSelector('input[type="password"]')).toBe(true);
-});
+  expect(isSensitiveSelector('input[name="secretAccessKey"]')).toBe(true)
+  expect(isSensitiveSelector('input[type="password"]')).toBe(true)
+})
 
 it('allows normal AWS console fields', () => {
-  expect(isSensitiveSelector('input[name="bucketName"]')).toBe(false);
-});
+  expect(isSensitiveSelector('input[name="bucketName"]')).toBe(false)
+})
 
 it('throws when a guide tries to target sensitive fields', () => {
-  expect(() => assertSafeSelector('input[type="password"]')).toThrow('Refusing to target sensitive AWS fields');
-});
+  expect(() => assertSafeSelector('input[type="password"]')).toThrow(
+    'Refusing to target sensitive AWS fields',
+  )
+})
 
 it('does not allow external network URLs in MVP', () => {
-  expect(isExternalUrlAllowed('https://api.example.com')).toBe(false);
-  expect(isExternalUrlAllowed('https://s3.console.aws.amazon.com')).toBe(false);
-});
+  expect(isExternalUrlAllowed('https://api.example.com')).toBe(false)
+  expect(isExternalUrlAllowed('https://s3.console.aws.amazon.com')).toBe(false)
+})
 ```
 
 - [ ] **Step 2: Run test to verify failure**
@@ -953,21 +979,21 @@ const sensitiveSelectorPatterns = [
   /accesskey/i,
   /access-key/i,
   /credential/i,
-  /token/i
-];
+  /token/i,
+]
 
 export function isSensitiveSelector(selector: string): boolean {
-  return sensitiveSelectorPatterns.some((pattern) => pattern.test(selector));
+  return sensitiveSelectorPatterns.some((pattern) => pattern.test(selector))
 }
 
 export function assertSafeSelector(selector: string): void {
   if (isSensitiveSelector(selector)) {
-    throw new Error('Refusing to target sensitive AWS fields');
+    throw new Error('Refusing to target sensitive AWS fields')
   }
 }
 
 export function isExternalUrlAllowed(_url: string): boolean {
-  return false;
+  return false
 }
 ```
 
@@ -976,42 +1002,42 @@ export function isExternalUrlAllowed(_url: string): boolean {
 Modify `src/content/highlight.ts`:
 
 ```ts
-import { assertSafeSelector } from '../safety/safetyRules';
+import { assertSafeSelector } from '../safety/safetyRules'
 
-const HIGHLIGHT_ATTRIBUTE = 'data-aws-copilot-highlight';
+const HIGHLIGHT_ATTRIBUTE = 'data-aws-copilot-highlight'
 
 export function clearHighlight(): void {
-  document.querySelectorAll(`[${HIGHLIGHT_ATTRIBUTE}]`).forEach((element) => element.remove());
+  document.querySelectorAll(`[${HIGHLIGHT_ATTRIBUTE}]`).forEach((element) => element.remove())
 }
 
 export function highlightElement(target: HTMLElement): void {
-  clearHighlight();
-  const rect = target.getBoundingClientRect();
-  const overlay = document.createElement('div');
-  overlay.setAttribute(HIGHLIGHT_ATTRIBUTE, 'true');
-  overlay.style.position = 'fixed';
-  overlay.style.left = `${rect.left - 4}px`;
-  overlay.style.top = `${rect.top - 4}px`;
-  overlay.style.width = `${rect.width + 8}px`;
-  overlay.style.height = `${rect.height + 8}px`;
-  overlay.style.border = '3px solid #10b981';
-  overlay.style.borderRadius = '6px';
-  overlay.style.pointerEvents = 'none';
-  overlay.style.zIndex = '2147483647';
-  overlay.style.boxShadow = '0 0 0 4px rgba(16, 185, 129, 0.2)';
-  document.body.appendChild(overlay);
+  clearHighlight()
+  const rect = target.getBoundingClientRect()
+  const overlay = document.createElement('div')
+  overlay.setAttribute(HIGHLIGHT_ATTRIBUTE, 'true')
+  overlay.style.position = 'fixed'
+  overlay.style.left = `${rect.left - 4}px`
+  overlay.style.top = `${rect.top - 4}px`
+  overlay.style.width = `${rect.width + 8}px`
+  overlay.style.height = `${rect.height + 8}px`
+  overlay.style.border = '3px solid #10b981'
+  overlay.style.borderRadius = '6px'
+  overlay.style.pointerEvents = 'none'
+  overlay.style.zIndex = '2147483647'
+  overlay.style.boxShadow = '0 0 0 4px rgba(16, 185, 129, 0.2)'
+  document.body.appendChild(overlay)
 }
 
 export function highlightSelector(selector: string): boolean {
-  assertSafeSelector(selector);
-  const target = document.querySelector(selector);
+  assertSafeSelector(selector)
+  const target = document.querySelector(selector)
   if (!(target instanceof HTMLElement)) {
-    clearHighlight();
-    return false;
+    clearHighlight()
+    return false
   }
 
-  highlightElement(target);
-  return true;
+  highlightElement(target)
+  return true
 }
 ```
 
@@ -1033,6 +1059,7 @@ git commit -m "feat: enforce local safety rules"
 ### Task 7: Panel To Content Script Integration
 
 **Files:**
+
 - Modify: `src/panel/App.tsx`
 - Modify: `src/panel/App.test.tsx`
 
@@ -1041,27 +1068,31 @@ git commit -m "feat: enforce local safety rules"
 Modify `src/panel/App.test.tsx`:
 
 ```tsx
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { App } from './App';
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { App } from './App'
 
 it('renders the extension name', () => {
-  render(<App />);
-  expect(screen.getByRole('heading', { name: 'AWS Copilot' })).toBeInTheDocument();
-});
+  render(<App />)
+  expect(screen.getByRole('heading', { name: 'AWS Copilot' })).toBeInTheDocument()
+})
 
 it('switches to Portuguese', async () => {
-  render(<App />);
-  await userEvent.selectOptions(screen.getByLabelText('Language'), 'pt-BR');
-  expect(screen.getByText('Roda localmente. Sem chamadas à API da AWS. Nenhum dado é enviado a servidores.')).toBeInTheDocument();
-});
+  render(<App />)
+  await userEvent.selectOptions(screen.getByLabelText('Language'), 'pt-BR')
+  expect(
+    screen.getByText(
+      'Roda localmente. Sem chamadas à API da AWS. Nenhum dado é enviado a servidores.',
+    ),
+  ).toBeInTheDocument()
+})
 
 it('advances through the guide', async () => {
-  render(<App />);
-  expect(screen.getByRole('heading', { name: 'Choose the objective' })).toBeInTheDocument();
-  await userEvent.click(screen.getByRole('button', { name: 'Mark done' }));
-  expect(screen.getByRole('heading', { name: 'Create the bucket' })).toBeInTheDocument();
-});
+  render(<App />)
+  expect(screen.getByRole('heading', { name: 'Choose the objective' })).toBeInTheDocument()
+  await userEvent.click(screen.getByRole('button', { name: 'Mark done' }))
+  expect(screen.getByRole('heading', { name: 'Create the bucket' })).toBeInTheDocument()
+})
 ```
 
 - [ ] **Step 2: Add `user-event` dependency**
@@ -1075,33 +1106,33 @@ Expected: dependency is added to `package.json` and `package-lock.json`.
 Modify `src/panel/App.tsx`:
 
 ```tsx
-import { useMemo, useState } from 'react';
-import { createGuideState, currentStep, goNext, markDone } from '../guides/guideEngine';
-import { s3IamGuide } from '../guides/s3IamGuide';
-import { detectLocale, type Locale, t } from '../i18n';
+import { useMemo, useState } from 'react'
+import { createGuideState, currentStep, goNext, markDone } from '../guides/guideEngine'
+import { s3IamGuide } from '../guides/s3IamGuide'
+import { detectLocale, type Locale, t } from '../i18n'
 
 async function sendHighlight(selector: string): Promise<void> {
   if (typeof chrome === 'undefined' || !chrome.tabs?.query) {
-    return;
+    return
   }
 
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
   if (tab.id === undefined) {
-    return;
+    return
   }
 
   await chrome.tabs.sendMessage(tab.id, {
     type: 'AWS_COPILOT_HIGHLIGHT',
-    selector
-  });
+    selector,
+  })
 }
 
 export function App() {
-  const initialLocale = useMemo(() => detectLocale(), []);
-  const [locale, setLocale] = useState<Locale>(initialLocale);
-  const [guideState, setGuideState] = useState(() => createGuideState(s3IamGuide));
-  const step = currentStep(s3IamGuide, guideState);
-  const values = step.suggestedValues ?? {};
+  const initialLocale = useMemo(() => detectLocale(), [])
+  const [locale, setLocale] = useState<Locale>(initialLocale)
+  const [guideState, setGuideState] = useState(() => createGuideState(s3IamGuide))
+  const step = currentStep(s3IamGuide, guideState)
+  const values = step.suggestedValues ?? {}
 
   return (
     <main>
@@ -1128,14 +1159,14 @@ export function App() {
         <button
           type="button"
           onClick={() => {
-            setGuideState((state) => goNext(s3IamGuide, markDone(state, step.id)));
+            setGuideState((state) => goNext(s3IamGuide, markDone(state, step.id)))
           }}
         >
           {t(locale, 'action.done')}
         </button>
       </section>
     </main>
-  );
+  )
 }
 ```
 
@@ -1157,6 +1188,7 @@ git commit -m "feat: connect panel guide actions"
 ### Task 8: Browser Fixtures And Flow Checks
 
 **Files:**
+
 - Create: `playwright.config.ts`
 - Create: `tests/fixtures/aws-console-s3.html`
 - Create: `tests/fixtures/aws-console-iam.html`
@@ -1187,19 +1219,19 @@ Keep existing scripts and replace only the `check` value.
 Write `playwright.config.ts`:
 
 ```ts
-import { defineConfig } from '@playwright/test';
+import { defineConfig } from '@playwright/test'
 
 export default defineConfig({
   testDir: 'tests/browser',
   use: {
-    baseURL: 'http://127.0.0.1:4173'
+    baseURL: 'http://127.0.0.1:4173',
   },
   webServer: {
     command: 'npx vite --host 127.0.0.1 --port 4173',
     url: 'http://127.0.0.1:4173',
-    reuseExistingServer: !process.env.CI
-  }
-});
+    reuseExistingServer: !process.env.CI,
+  },
+})
 ```
 
 - [ ] **Step 4: Add fixture pages**
@@ -1244,22 +1276,22 @@ Write `tests/fixtures/aws-console-iam.html`:
 Write `tests/browser/extension-flow.spec.ts`:
 
 ```ts
-import { expect, test } from '@playwright/test';
+import { expect, test } from '@playwright/test'
 
 test('panel renders localized guide content', async ({ page }) => {
-  await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'AWS Copilot' })).toBeVisible();
-  await page.getByLabel('Language').selectOption('pt-BR');
-  await expect(page.getByText('Roda localmente. Sem chamadas à API da AWS.')).toBeVisible();
-});
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'AWS Copilot' })).toBeVisible()
+  await page.getByLabel('Language').selectOption('pt-BR')
+  await expect(page.getByText('Roda localmente. Sem chamadas à API da AWS.')).toBeVisible()
+})
 
 test('fixture pages contain target fields used by guide selectors', async ({ page }) => {
-  await page.goto('/tests/fixtures/aws-console-s3.html');
-  await expect(page.locator('input[name="bucketName"]')).toBeVisible();
+  await page.goto('/tests/fixtures/aws-console-s3.html')
+  await expect(page.locator('input[name="bucketName"]')).toBeVisible()
 
-  await page.goto('/tests/fixtures/aws-console-iam.html');
-  await expect(page.locator('textarea')).toBeVisible();
-});
+  await page.goto('/tests/fixtures/aws-console-iam.html')
+  await expect(page.locator('textarea')).toBeVisible()
+})
 ```
 
 - [ ] **Step 6: Run browser tests**
@@ -1280,13 +1312,14 @@ git commit -m "test: add browser fixture checks"
 ### Task 9: README And Final Verification
 
 **Files:**
+
 - Create: `README.md`
 
 - [ ] **Step 1: Write README**
 
 Write `README.md`:
 
-```md
+````md
 # AWS Copilot Extension
 
 Chrome MV3 extension that locally guides users through AWS Console tasks.
@@ -1325,6 +1358,7 @@ Install dependencies:
 ```bash
 npm install
 ```
+````
 
 Run checks:
 
@@ -1346,7 +1380,8 @@ Load `dist/` in Chrome:
 4. Select this project's `dist/` folder.
 
 Use a non-production AWS account for manual testing.
-```
+
+````
 
 - [ ] **Step 2: Run full verification**
 
@@ -1364,7 +1399,7 @@ Expected output includes:
 dist/content.js
 dist/index.html
 dist/manifest.json
-```
+````
 
 - [ ] **Step 4: Commit documentation**
 

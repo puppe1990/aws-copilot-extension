@@ -3,6 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/puppe1990/aws-copilot-extension.git"
+  },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
@@ -10,7 +17,22 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "test:browser": "playwright test",
-    "check": "npm run typecheck && npm run test && npm run build && npm run test:browser"
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "ci": "npm run format:check && npm run lint && npm test",
+    "check": "npm run ci && npm run typecheck && npm run build && npm run test:browser",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix --max-warnings 0",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml,html,css,js,mjs}": [
+      "prettier --write"
+    ]
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.2",
@@ -22,6 +44,7 @@
     "vite": "^7.0.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.59.1",
     "@testing-library/jest-dom": "^6.6.0",
     "@testing-library/react": "^16.2.0",
@@ -30,7 +53,15 @@
     "@types/node": "^24.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "eslint": "^10.11.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.12.0",
+    "husky": "^9.1.7",
     "jsdom": "^26.0.0",
+    "lint-staged": "^16.4.0",
+    "prettier": "^3.9.8",
+    "typescript-eslint": "^8.70.0",
     "vitest": "^3.0.0"
   }
 }

@@ -173,4 +173,3 @@ The extractor must not change existing guide behavior, overlay rendering, or ste
 - Keep the extractor logic in a dedicated helper within the content layer rather than expanding `handleContentMessage` inline too much
 - Keep the Markdown deterministic so tests can assert meaningful sections
 - Use a plain text download blob in the popup for `debug.md`
-

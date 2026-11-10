@@ -4,56 +4,64 @@ export type AwsPage =
   | { kind: 's3BucketsList' }
   | { kind: 's3CreateBucket' }
   | { kind: 's3BucketSettings' }
-  | { kind: 'iamCreatePolicy' };
+  | { kind: 'iamCreatePolicy' }
 
 export function detectAwsPage(url: string): AwsPage {
-  const parsed = new URL(url);
-  const hostname = parsed.hostname.toLowerCase();
-  const pathname = parsed.pathname.toLowerCase();
-  const hash = parsed.hash.toLowerCase();
+  const parsed = new URL(url)
+  const hostname = parsed.hostname.toLowerCase()
+  const pathname = parsed.pathname.toLowerCase()
+  const hash = parsed.hash.toLowerCase()
 
   if (!hostname.endsWith('console.aws.amazon.com')) {
-    return { kind: 'notAws' };
+    return { kind: 'notAws' }
   }
 
   if (isS3CreateBucketPage(hostname, pathname)) {
-    return { kind: 's3CreateBucket' };
+    return { kind: 's3CreateBucket' }
   }
 
   if (isS3BucketsListPage(hostname, pathname)) {
-    return { kind: 's3BucketsList' };
+    return { kind: 's3BucketsList' }
   }
 
   if (isS3BucketSettingsPage(hostname, pathname)) {
-    return { kind: 's3BucketSettings' };
+    return { kind: 's3BucketSettings' }
   }
 
   if (isIamCreatePolicyPage(pathname, hash)) {
-    return { kind: 'iamCreatePolicy' };
+    return { kind: 'iamCreatePolicy' }
   }
 
-  return { kind: 'awsUnknown' };
+  return { kind: 'awsUnknown' }
 }
 
 function isS3BucketsListPage(hostname: string, pathname: string): boolean {
-  return isS3ConsoleRoute(hostname, pathname) && (pathname === '/s3/home' || pathname === '/s3/buckets' || pathname === '/s3');
+  return (
+    isS3ConsoleRoute(hostname, pathname) &&
+    (pathname === '/s3/home' || pathname === '/s3/buckets' || pathname === '/s3')
+  )
 }
 
 function isS3CreateBucketPage(hostname: string, pathname: string): boolean {
-  return isS3ConsoleRoute(hostname, pathname) && pathname.startsWith('/s3/bucket/create');
+  return isS3ConsoleRoute(hostname, pathname) && pathname.startsWith('/s3/bucket/create')
 }
 
 function isS3BucketSettingsPage(hostname: string, pathname: string): boolean {
   return (
     isS3ConsoleRoute(hostname, pathname) &&
-    /^\/s3\/buckets\/[^/]+\/(?:permissions|properties|management|metrics|access-points)/u.test(pathname)
-  );
+    /^\/s3\/buckets\/[^/]+\/(?:permissions|properties|management|metrics|access-points)/u.test(
+      pathname,
+    )
+  )
 }
 
 function isS3ConsoleRoute(hostname: string, pathname: string): boolean {
-  return hostname.startsWith('s3.') || pathname.startsWith('/s3/');
+  return hostname.startsWith('s3.') || pathname.startsWith('/s3/')
 }
 
 function isIamCreatePolicyPage(pathname: string, hash: string): boolean {
-  return pathname.startsWith('/iam') && (hash.startsWith('#/policies$new') || hash.startsWith('#/policies/create'));
+  return (
+    pathname.startsWith('/iam') &&
+    (hash.startsWith('#/policies$new') || hash.startsWith('#/policies/create'))
+  )
 }
